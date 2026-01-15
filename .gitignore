@@ -116,3 +116,4 @@ dist
 .pnp.*
 .codebuddy
 release
+dist-electron
