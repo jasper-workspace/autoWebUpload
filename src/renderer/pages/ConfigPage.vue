@@ -459,14 +459,17 @@ async function saveConfig() {
   try {
     await window.electronAPI.saveConfig(config);
     await loadServers();
-    
+
     // 显示成功提示
     const action = isEditing.value ? '更新' : '保存';
     showSuccess('操作成功', `服务器配置${action}成功！`);
-    
+
     if (!isEditing.value) {
       resetForm();
       selectedServerId.value = config.id;
+    } else {
+      // 编辑模式:重新加载表单缓存
+      await selectServer(config.id);
     }
   } catch (error) {
     console.error('保存配置失败:', error);
