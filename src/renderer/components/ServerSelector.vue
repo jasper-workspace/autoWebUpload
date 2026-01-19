@@ -44,6 +44,11 @@ const emit = defineEmits<Emits>();
 
 const serverStore = useServerStore();
 
+// 暴露重新加载方法
+defineExpose({
+  reloadServers: () => serverStore.refreshIfNeeded()
+});
+
 function handleChange(event: Event) {
   const target = event.target as HTMLSelectElement;
   const value = target.value;
@@ -63,6 +68,7 @@ onMounted(async () => {
       await serverStore.loadServers();
     } catch (error) {
       console.error('加载服务器列表失败:', error);
+      // 可以在这里添加错误处理逻辑，比如显示错误消息
     }
   }
 });

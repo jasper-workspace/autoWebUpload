@@ -353,6 +353,9 @@ import { showSuccess, showError } from '../utils/notification';
 import type { ServerConfig } from '../../shared/types';
 import type { ConnectionTestResult } from '../../shared/types';
 import { toSerializableConfig } from '../utils/config';
+import { useServerStore } from '../stores/server';
+
+const serverStore = useServerStore();
 
 const servers = ref<ServerConfig[]>([]);
 const selectedServerId = ref('');
@@ -457,8 +460,7 @@ async function saveConfig() {
   };
 
   try {
-    await window.electronAPI.saveConfig(config);
-    await loadServers();
+    await serverStore.saveConfig(config);
 
     // 显示成功提示
     const action = isEditing.value ? '更新' : '保存';

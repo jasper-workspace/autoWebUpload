@@ -121,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, nextTick, onMounted, onUnmounted, onActivated, watch } from "vue";
 import { Upload, FolderOpen, X } from "lucide-vue-next";
 import { useServerStore } from "../stores/server";
 import { useUploadStore } from "../stores/upload";
@@ -377,5 +377,10 @@ onUnmounted(() => {
   if (scrollTimeout) {
     clearTimeout(scrollTimeout);
   }
+});
+
+// 页面激活时检查并刷新配置
+onActivated(() => {
+  serverStore.refreshIfNeeded();
 });
 </script>

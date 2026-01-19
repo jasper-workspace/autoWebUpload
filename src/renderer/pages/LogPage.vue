@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, watch, onActivated } from 'vue';
 import { Play, StopCircle } from 'lucide-vue-next';
 import { useServerStore } from '../stores/server';
 import { useLogStore } from '../stores/log';
@@ -306,5 +306,10 @@ onUnmounted(() => {
 
   // 移除日志监听器
   window.electronAPI.removeLogStreamListeners();
+});
+
+onActivated(() => {
+  // 页面激活时，检查并刷新配置
+  serverStore.refreshIfNeeded();
 });
 </script>

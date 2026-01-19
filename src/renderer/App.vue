@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick, computed } from 'vue';
+import { ref, watch, onMounted, nextTick, computed, onActivated } from 'vue';
 import { useRoute } from 'vue-router';
 import NavBar from './components/NavBar.vue';
 import ServerSelector from './components/ServerSelector.vue';
@@ -64,6 +64,11 @@ onMounted(() => {
       registerNotification(notificationRef.value);
     }
   });
+});
+
+onActivated(() => {
+  // 应用激活时，检查并刷新配置
+  serverStore.refreshIfNeeded();
 });
 </script>
 
