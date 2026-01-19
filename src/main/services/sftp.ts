@@ -221,7 +221,6 @@ export class SFTPService {
             newParts.push('tail');
           } else if (parts[i] === '-f') {
             // 跳过 -f 参数
-            console.log('fetchLogs: 移除 -f 参数');
             continue;
           } else {
             newParts.push(parts[i]);

@@ -206,16 +206,10 @@ function clearLogs() {
 
 // 启动实时日志流
 async function startLogStream() {
-  console.log('startLogStream 被调用');
-  console.log('isOperating:', isOperating.value);
-  console.log('isStreaming:', isStreaming.value);
 
   if (isOperating.value) {
-    console.log('startLogStream: 正在操作中，忽略请求');
     return;
   }
-
-  console.log('startLogStream: 检查通过，开始执行');
 
   if (!selectedServer.value || !canFetchLogs.value) {
     addLog("请先选择服务器并确保配置了日志命令", "error");
@@ -256,31 +250,19 @@ async function startLogStream() {
 
 // 停止实时日志流
 async function stopLogStream() {
-  console.log('=== stopLogStream 被调用 ===');
-  console.log('isOperating:', isOperating.value);
-  console.log('logStore.isStreaming:', logStore.isStreaming);
-  console.log('isStreaming (computed):', isStreaming.value);
 
   if (isOperating.value) {
-    console.log('stopLogStream: 正在操作中，忽略请求');
     return;
   }
-
-  console.log('stopLogStream: 检查通过，开始执行');
 
   isOperating.value = true;
   addLog("正在停止实时日志流...", "info");
 
-  console.log('准备调用 logStore.stopStream()');
   // 先设置标志，停止接收新的日志数据
   logStore.stopStream();
-  console.log('调用 logStore.stopStream() 完成');
-  console.log('logStore.isStreaming after stopStream:', logStore.isStreaming);
 
   try {
-    console.log('准备调用 electronAPI.stopLogStream()');
     await window.electronAPI.stopLogStream();
-    console.log('调用 electronAPI.stopLogStream() 完成');
     // 不在这里移除监听器，监听器由 onMounted/onUnmounted 管理
     addLog("实时日志流已停止", "success");
   } catch (error: any) {
@@ -289,16 +271,12 @@ async function stopLogStream() {
   } finally {
     // 无论如何都重置标志
     isOperating.value = false;
-    console.log('=== stopLogStream 操作完成，isOperating = false ===');
   }
 }
 
 onMounted(() => {
   // 先移除旧的监听器，避免重复
   window.electronAPI.removeLogStreamListeners();
-
-  // 重新设置监听器，确保能接收到日志
-  console.log('LogPage 挂载，设置日志监听器');
 
   window.electronAPI.onLogStream((log: string) => {
     if (!logStore.shouldReceiveLogs) return;
