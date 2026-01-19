@@ -107,7 +107,10 @@ import { toSerializableConfig } from '../utils/config';
 const serverStore = useServerStore();
 const logStore = useLogStore();
 
-const logType = logStore.logType;
+const logType = computed({
+  get: () => logStore.logType,
+  set: (value: 'frontend' | 'backend') => { logStore.logType = value; }
+});
 const isStreaming = computed(() => logStore.isStreaming);
 const logs = computed(() => logStore.logs);
 const logContainer = ref<HTMLElement | null>(null);
@@ -219,7 +222,7 @@ async function startLogStream() {
     return;
   }
 
-  const logCommand = logType === 'frontend'
+  const logCommand = logType.value === 'frontend'
     ? selectedServer.value.frontendLogCommand
     : selectedServer.value.backendLogCommand;
 

@@ -47,8 +47,8 @@ const router = createRouter({
 
 // 初始化全局方法
 if (typeof window !== 'undefined') {
-  window.isUploading = null;
-  window.cancelUpload = null;
+  window.isUploading = undefined;
+  window.cancelUpload = undefined;
 }
 
 // 添加路由守卫
