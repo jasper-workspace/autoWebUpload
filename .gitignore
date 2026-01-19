@@ -117,3 +117,4 @@ dist
 .codebuddy
 release
 dist-electron
+package-lock.json

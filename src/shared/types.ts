@@ -6,9 +6,15 @@ export interface ServerConfig {
   username: string;
   password?: string;
   privateKey?: string;
-  remotePath: string;
+  frontendPath: string;
+  backendPath: string;
+  remotePath?: string;
   postUploadCommand?: string;
   retryCount?: number;
+  frontendLogCommand?: string;
+  backendLogCommand?: string;
+  frontendPostUploadCommand?: string;
+  backendPostUploadCommand?: string;
 }
 
 export interface UploadProgress {

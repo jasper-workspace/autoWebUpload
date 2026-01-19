@@ -3,7 +3,11 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -17,6 +21,18 @@
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": false
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
+  ],
+  "exclude": [
+    "src/renderer/pages/UploadPage.vue"
+  ], // 排除不存在的文件以避免报错
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
 }

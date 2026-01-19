@@ -21,8 +21,19 @@ declare global {
       selectFolder: () => Promise<string | null>;
       onUploadProgress: (callback: (data: any) => void) => void;
       removeUploadProgressListener: () => void;
+      fetchServerLogs: (config: any, command: string) => Promise<string>;
+      startLogStream: (config: any, command: string) => Promise<void>;
+      stopLogStream: () => Promise<void>;
+      onLogStream: (callback: (log: string) => void) => void;
+      onLogStreamError: (callback: (error: string) => void) => void;
+      removeLogStreamListeners: () => void;
       sendLog: (logEntry: any) => void;
       getAppVersion: () => Promise<string>;
+      showMessageBox: (options: { type: string; title: string; message: string; buttons: string[] }) => Promise<any>;
     };
+    isUploading?: () => boolean;
+    cancelUpload?: () => void;
+    uploadProgressListenerSet?: boolean;
+    currentUploadConfig?: any;
   }
 }

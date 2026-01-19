@@ -46,6 +46,71 @@ export class SFTPService {
     remotePath: string,
     onProgress: (progress: UploadProgress) => void
   ): Promise<void> {
+    // 检查路径是文件还是目录
+    const stats = await fs.stat(localPath);
+    
+    if (stats.isFile()) {
+      // 处理单个文件上传
+      const fileName = path.basename(localPath);
+      const remoteFilePath = path.posix.join(remotePath, fileName);
+      
+      onProgress({
+        totalFiles: 1,
+        uploadedFiles: 0,
+        currentFile: fileName,
+        percentage: 0,
+        status: 'uploading'
+      });
+      
+      // 创建一个模拟进度的定时器
+      let progressPercentage = 0;
+      const progressInterval = setInterval(() => {
+        // 每次增加2%，直到95%
+        if (progressPercentage < 95) {
+          progressPercentage += 2;
+          onProgress({
+            totalFiles: 1,
+            uploadedFiles: 0,
+            currentFile: fileName,
+            percentage: progressPercentage,
+            status: 'uploading'
+          });
+        }
+      }, 1000); // 每1000ms(1秒)更新一次
+      
+      try {
+        // 上传单个文件
+        await this.sftpClient.put(localPath, remoteFilePath);
+        
+        // 清除模拟进度定时器
+        clearInterval(progressInterval);
+        
+        // 设置为100%
+        onProgress({
+          totalFiles: 1,
+          uploadedFiles: 0,
+          currentFile: fileName,
+          percentage: 100,
+          status: 'uploading'
+        });
+        
+        onProgress({
+          totalFiles: 1,
+          uploadedFiles: 1,
+          currentFile: fileName,
+          percentage: 100,
+          status: 'success'
+        });
+      } catch (error) {
+        // 如果上传失败，清除定时器
+        clearInterval(progressInterval);
+        throw error;
+      }
+      
+      return;
+    }
+    
+    // 处理目录上传（原有逻辑）
     const result = await this.scanFolder(localPath);
     const files = result.files;
     const dirs = result.dirs;
@@ -99,29 +164,157 @@ export class SFTPService {
     });
   }
 
-  async executeCommand(command: string): Promise<string> {
+  async executeCommand(command: string): Promise<{ success: boolean; output: string; error?: string }> {
     return await new Promise((resolve, reject) => {
-      this.sshClient.exec(command, (err: any, stream: any) => {
+      // 使用 bash -l 来加载登录 shell 的环境变量
+      const fullCommand = `bash -l -c '${command.replace(/'/g, "'\\''")}'`;
+
+      this.sshClient.exec(fullCommand, (err: any, stream: any) => {
         if (err) {
           reject(err);
           return;
         }
 
         let output = '';
+        let errorOutput = '';
+
         stream.on('data', (data: Buffer) => {
           output += data.toString();
         });
 
         stream.stderr.on('data', (data: Buffer) => {
-          output += data.toString();
+          errorOutput += data.toString();
         });
 
         stream.on('close', (code: number) => {
           if (code !== 0) {
-            reject(new Error(`Command failed with code ${code}: ${output}`));
+            resolve({
+              success: false,
+              output: output,
+              error: errorOutput || `Command failed with code ${code}`
+            });
           } else {
-            resolve(output);
+            resolve({
+              success: true,
+              output: output,
+              error: errorOutput
+            });
           }
+        });
+      });
+    });
+  }
+
+  // 新增方法：专门用于获取日志，处理tail命令
+  async fetchLogs(command: string): Promise<string> {
+    return await new Promise((resolve, reject) => {
+
+      // 处理tail -f命令，转换为普通tail命令
+      let modifiedCommand = command || '';
+      if (command && command.includes('tail -f')) {
+        // 解析命令参数
+        const parts = command.split(' ');
+        const newParts: string[] = [];
+
+        for (let i = 0; i < parts.length; i++) {
+          if (parts[i] === 'tail') {
+            newParts.push('tail');
+          } else if (parts[i] === '-f') {
+            // 跳过 -f 参数
+            console.log('fetchLogs: 移除 -f 参数');
+            continue;
+          } else {
+            newParts.push(parts[i]);
+          }
+        }
+
+        modifiedCommand = newParts.join(' ');
+
+        // 如果没有行数参数，添加默认值
+        if (modifiedCommand && !modifiedCommand.includes('-n')) {
+          modifiedCommand = modifiedCommand.replace('tail', 'tail -n 100');
+        }
+
+        console.log('fetchLogs: 转换后的命令:', modifiedCommand);
+      }
+
+      // 使用 bash -l 来加载登录 shell 的环境变量，并使用单引号避免转义问题
+      const fullCommand = `bash -l -c '${modifiedCommand.replace(/'/g, "'\\''")}'`;
+
+      // 执行修改后的命令
+      this.sshClient.exec(fullCommand, (err: any, stream: any) => {
+        if (err) {
+          console.error('fetchLogs: 命令执行失败:', err);
+          reject(err);
+          return;
+        }
+
+        let output = '';
+        let errorOutput = '';
+
+        stream.on('data', (data: Buffer) => {
+          // 确保将Buffer转换为字符串
+          const chunk = data.toString();
+          output += chunk;
+        });
+
+        stream.stderr.on('data', (data: Buffer) => {
+          // 确保将Buffer转换为字符串
+          const chunk = data.toString();
+          errorOutput += chunk;
+          console.error('fetchLogs: stderr数据:', chunk);
+        });
+
+        stream.on('close', (code: number) => {
+          if (code !== 0) {
+            reject(new Error(`Command failed with code ${code}: ${errorOutput || output}`));
+          } else {
+            // 确保output是纯字符串
+            const finalOutput = errorOutput ? `${output}\n${errorOutput}` : output;
+            resolve(typeof finalOutput === 'string' ? finalOutput : String(finalOutput));
+          }
+        });
+
+        stream.on('error', (err: Error) => {
+          console.error('fetchLogs: stream错误:', err);
+          reject(err);
+        });
+      });
+    });
+  }
+
+  // 执行实时日志流命令
+  async executeLogStream(command: string, onData: (data: string) => void): Promise<void> {
+    return await new Promise((resolve, reject) => {
+      console.log('executeLogStream: 原始命令:', command);
+
+      // 使用 bash -l 来加载登录 shell 的环境变量
+      const fullCommand = `bash -l -c '${command.replace(/'/g, "'\\''")}'`;
+
+      this.sshClient.exec(fullCommand, (err: any, stream: any) => {
+        if (err) {
+          console.error('executeLogStream: 命令执行失败:', err);
+          reject(err);
+          return;
+        }
+
+        stream.on('data', (data: Buffer) => {
+          const chunk = data.toString();
+          onData(chunk);
+        });
+
+        stream.stderr.on('data', (data: Buffer) => {
+          const chunk = data.toString();
+          onData(chunk);
+        });
+
+        stream.on('close', (code: number) => {
+          resolve();
+        });
+
+        stream.on('error', (err: Error) => {
+          console.error('executeLogStream: stream错误:', err);
+          reject(err);
         });
       });
     });

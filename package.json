@@ -1,6 +1,6 @@
 {
   "name": "auto-web-upload",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Linux 服务器文件自动部署工具",
   "main": "dist-electron/main/index.js",
   "scripts": {
@@ -12,9 +12,11 @@
   "dependencies": {
     "electron-log": "^5.4.3",
     "electron-store": "^8.1.0",
+    "pinia": "^3.0.4",
     "ssh2": "^1.15.0",
     "ssh2-sftp-client": "^10.0.3",
     "vue": "^3.4.0",
+    "vue-router": "^4.6.4",
     "winston": "^3.19.0"
   },
   "devDependencies": {

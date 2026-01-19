@@ -8,9 +8,11 @@ let mainWindow: BrowserWindow | null = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
     title: `Linux 服务器自动部署工具 v${app.getVersion()}`,
-    width: 800,
-    height: 600,
-    resizable: false,
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    resizable: true,
     icon: path.join(process.cwd(), 'favicon.png'),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -44,14 +46,16 @@ function createWindow() {
     // 在打包环境中，使用 file:// 协议加载 HTML 文件
     const htmlPath = path.join(__dirname, '../../dist/index.html');
     logger.info('生产环境，加载本地文件', { htmlPath });
-    
+
     try {
       mainWindow.loadFile(htmlPath);
       logger.info('HTML 文件加载成功');
+      // 临时打开开发者工具以诊断问题
+      mainWindow.webContents.openDevTools();
     } catch (error) {
       logger.error('HTML 文件加载失败', error);
     }
-    
+
     // 确保资源文件正确加载
     mainWindow.webContents.session.protocol.registerFileProtocol('app', (request, callback) => {
       const url = request.url.substr(6); // 去掉 'app://' 前缀
