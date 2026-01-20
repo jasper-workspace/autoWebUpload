@@ -3,11 +3,110 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 240 24% 15%;
-    --foreground: 210 40% 98%;
-    --card: 240 24% 15%;
-    --card-foreground: 210 40% 98%;
+  /* 深色主题 (One Dark) */
+  :root[data-theme="dark"] {
+    --background: #1E1E1E;
+    --foreground: #E0E0E0;
+    --card-bg: #2C2C2C;
+    --card-border: #3C3C3C;
+    --input-bg: #2C2C2C;
+    --input-border: #3C3C3C;
+    --input-focus: #409EFF;
+    --btn-primary: #409EFF;
+    --btn-primary-hover: #337ECC;
+    --btn-secondary: #3C3C3C;
+    --btn-secondary-hover: #4C4C4C;
+    --btn-danger: #F56C6C;
+    --btn-danger-hover: #D64A4A;
+    --scrollbar-track: #1E1E1E;
+    --scrollbar-thumb: #3C3C3C;
+    --scrollbar-thumb-hover: #4C4C4C;
+    --scrollbar-thumb-active: #5C5C5C;
+    --header-bg: #252525;
+    --header-border: #3C3C3C;
+    --log-bg: #0D0D0D;
+    --muted-text: #8C8C8C;
+    --dialog-bg: #2A2A2A;
+  }
+
+  /* 浅色主题 (One Light) */
+  :root[data-theme="light"] {
+    --background: #FAFAFA;
+    --foreground: #333333;
+    --card-bg: #FFFFFF;
+    --card-border: #E0E0E0;
+    --input-bg: #FFFFFF;
+    --input-border: #E0E0E0;
+    --input-focus: #409EFF;
+    --btn-primary: #409EFF;
+    --btn-primary-hover: #337ECC;
+    --btn-secondary: #F5F7FA;
+    --btn-secondary-hover: #E4E7ED;
+    --btn-danger: #F56C6C;
+    --btn-danger-hover: #D64A4A;
+    --scrollbar-track: #F5F5F5;
+    --scrollbar-thumb: #C0C4CC;
+    --scrollbar-thumb-hover: #A6A9AD;
+    --scrollbar-thumb-active: #909399;
+    --header-bg: #FFFFFF;
+    --header-border: #E0E0E0;
+    --log-bg: #FFFFFF;
+    --muted-text: #909399;
+    --dialog-bg: #FFFFFF;
+  }
+
+  /* 跟随系统主题 - 默认深色 */
+  :root[data-theme="system"] {
+    --background: #1E1E1E;
+    --foreground: #E0E0E0;
+    --card-bg: #2C2C2C;
+    --card-border: #3C3C3C;
+    --input-bg: #2C2C2C;
+    --input-border: #3C3C3C;
+    --input-focus: #409EFF;
+    --btn-primary: #409EFF;
+    --btn-primary-hover: #337ECC;
+    --btn-secondary: #3C3C3C;
+    --btn-secondary-hover: #4C4C4C;
+    --btn-danger: #F56C6C;
+    --btn-danger-hover: #D64A4A;
+    --scrollbar-track: #1E1E1E;
+    --scrollbar-thumb: #3C3C3C;
+    --scrollbar-thumb-hover: #4C4C4C;
+    --scrollbar-thumb-active: #5C5C5C;
+    --header-bg: #252525;
+    --header-border: #3C3C3C;
+    --log-bg: #0D0D0D;
+    --muted-text: #8C8C8C;
+    --dialog-bg: #2A2A2A;
+  }
+
+  /* 系统浅色主题媒体查询 */
+  @media (prefers-color-scheme: light) {
+    :root[data-theme="system"] {
+      --background: #FAFAFA;
+      --foreground: #333333;
+      --card-bg: #FFFFFF;
+      --card-border: #E0E0E0;
+      --input-bg: #FFFFFF;
+      --input-border: #E0E0E0;
+      --input-focus: #409EFF;
+      --btn-primary: #409EFF;
+      --btn-primary-hover: #337ECC;
+      --btn-secondary: #F5F7FA;
+      --btn-secondary-hover: #E4E7ED;
+      --btn-danger: #F56C6C;
+      --btn-danger-hover: #D64A4A;
+      --scrollbar-track: #F5F5F5;
+      --scrollbar-thumb: #C0C4CC;
+      --scrollbar-thumb-hover: #A6A9AD;
+      --scrollbar-thumb-active: #909399;
+      --header-bg: #FFFFFF;
+      --header-border: #E0E0E0;
+      --log-bg: #FFFFFF;
+      --muted-text: #909399;
+      --dialog-bg: #FFFFFF;
+    }
   }
 
   * {
@@ -18,10 +117,11 @@
 
   body {
     font-family: 'Microsoft YaHei UI', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #1E1E1E;
-    color: #E0E0E0;
+    background: var(--background);
+    color: var(--foreground);
     min-height: 100vh;
     overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   #app {
@@ -36,35 +136,37 @@
   }
 
   *::-webkit-scrollbar-track {
-    background: #1E1E1E;
+    background: var(--scrollbar-track);
     border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb {
-    background: #3C3C3C;
+    background: var(--scrollbar-thumb);
     border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: #4C4C4C;
+    background: var(--scrollbar-thumb-hover);
   }
 
   *::-webkit-scrollbar-thumb:active {
-    background: #5C5C5C;
+    background: var(--scrollbar-thumb-active);
   }
 
   /* Firefox 滚动条样式 */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #3C3C3C #1E1E1E;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
 }
 
 @layer components {
   .input-field {
-    @apply w-full bg-[#2C2C2C] border border-[#3C3C3C] rounded-lg px-4 py-2 text-[#E0E0E0]
-           focus:outline-none focus:border-[#409EFF] focus:ring-1 focus:ring-[#409EFF]
+    @apply w-full rounded-lg px-4 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--input-focus)]
            transition-all duration-200;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--foreground);
   }
 
   select.input-field {
@@ -73,26 +175,44 @@
 
   select.input-field option {
     padding: 0.5rem 0.75rem;
-    background-color: #2C2C2C;
-    color: #E0E0E0;
+    background-color: var(--input-bg);
+    color: var(--foreground);
   }
 
   .btn-primary {
-    @apply bg-[#409EFF] hover:bg-[#337ECC] text-white font-medium px-6 py-2 rounded-lg
-           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply font-medium px-6 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: var(--btn-primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--btn-primary-hover);
   }
 
   .btn-secondary {
-    @apply bg-[#3C3C3C] hover:bg-[#4C4C4C] text-white font-medium px-6 py-2 rounded-lg
-           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply font-medium px-6 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: var(--btn-secondary);
+    color: var(--foreground);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--btn-secondary-hover);
   }
 
   .btn-danger {
-    @apply bg-[#F56C6C] hover:bg-[#D64A4A] text-white font-medium px-6 py-2 rounded-lg
-           transition-all duration-200;
+    @apply font-medium px-6 py-2 rounded-lg transition-all duration-200;
+    background-color: var(--btn-danger);
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background-color: var(--btn-danger-hover);
   }
 
   .card {
-    @apply bg-[#2C2C2C] rounded-lg border border-[#3C3C3C] shadow-lg;
+    @apply rounded-lg shadow-lg;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--foreground);
   }
 }

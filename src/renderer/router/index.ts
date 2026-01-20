@@ -20,6 +20,15 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/logs',
+    name: 'Logs',
+    component: () => import('../pages/LogPage.vue'),
+    meta: {
+      title: '系统日志',
+      showServerSelector: true
+    }
+  },
+  {
     path: '/config',
     name: 'Config',
     component: () => import('../pages/ConfigPage.vue'),
@@ -29,14 +38,14 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
-    path: '/logs',
-    name: 'Logs',
-    component: () => import('../pages/LogPage.vue'),
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('../pages/SettingsPage.vue'),
     meta: {
-      title: '系统日志',
-      showServerSelector: true
+      title: '系统设置',
+      showServerSelector: false
     }
-  }
+  },
 ];
 
 // 创建路由实例

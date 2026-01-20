@@ -7,7 +7,7 @@
 
           <!-- 部署类型 -->
           <div class="mb-4">
-            <h2 class="text-sm mb-4 font-semibold text-[#E0E0E0]">
+            <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
               部署类型
             </h2>
             <div class="flex gap-3 mt-2">
@@ -18,7 +18,7 @@
                   value="frontend"
                   class="accent-[#409EFF]"
                 />
-                <span class="text-[#E0E0E0]">前端</span>
+                <span class="text-[var(--foreground)]">前端</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
@@ -27,14 +27,14 @@
                   value="backend"
                   class="accent-[#409EFF]"
                 />
-                <span class="text-[#E0E0E0]">后端</span>
+                <span class="text-[var(--foreground)]">后端</span>
               </label>
             </div>
           </div>
 
           <!-- 远程目标路径 -->
           <div class="mb-4">
-            <h2 class="text-sm mb-4 font-semibold text-[#E0E0E0]">
+            <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
               远程目标路径
             </h2>
             <input
@@ -48,10 +48,10 @@
 
           <!-- 文件夹选择 -->
           <div class="mb-4">
-            <h2 class="text-sm mb-4 font-semibold text-[#E0E0E0]">
+            <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
               本地文件夹
             </h2>
-            <DropZone 
+            <DropZone
               v-model="localPath"
               :disabled="uploading"
               :deployType="deployType"
@@ -85,10 +85,10 @@
       <div class="col-span-1 md:col-span-8 flex flex-col min-h-0">
         <div class="card p-5 flex-1 flex flex-col min-h-0">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-sm font-semibold text-[#E0E0E0]">操作日志</h2>
+            <h2 class="text-sm font-semibold text-[var(--foreground)]">操作日志</h2>
             <button
               @click="clearLogs"
-              class="text-sm text-[#E0E0E0] bg-[#3C3C3C] hover:bg-[#4C4C4C] transition-colors px-3 py-1 border border-[#5C5C5C] rounded"
+              class="text-sm text-[var(--foreground)] bg-[var(--card-border)] hover:bg-[var(--scrollbar-thumb-hover)] transition-colors px-3 py-1 border border-[var(--card-border)] rounded"
             >
               清空日志
             </button>
@@ -98,7 +98,7 @@
           <div
             ref="logContainer"
             @scroll="handleScroll"
-            class="bg-[#0D0D0D] rounded-lg p-4 flex-1 overflow-y-auto font-mono text-xs space-y-1 border border-[#3C3C3C]"
+            class="bg-[var(--log-bg)] rounded-lg p-4 flex-1 overflow-y-auto font-mono text-xs space-y-1 border border-[var(--card-border)]"
           >
             <div
               v-for="(log, index) in logs"
@@ -107,12 +107,12 @@
                 'text-green-400': log.type === 'success',
                 'text-red-400': log.type === 'error',
                 'text-blue-400': log.type === 'info',
-                'text-[#E0E0E0]': !log.type,
+                'text-[var(--foreground)]': !log.type,
               }"
             >
               [{{ log.time }}] {{ log.message }}
             </div>
-            <div v-if="logs.length === 0" class="text-[#5C5C5C]">暂无日志</div>
+            <div v-if="logs.length === 0" class="text-[var(--muted-text)]">暂无日志</div>
           </div>
         </div>
       </div>

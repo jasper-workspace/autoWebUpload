@@ -1,10 +1,15 @@
 <template>
   <div class="max-w-7xl mx-auto h-full flex flex-col">
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
-      <!-- 左侧：服务器列表 -->
-      <div class="card p-3 flex flex-col overflow-hidden md:col-span-4">
+    <div class="card p-5 overflow-y-auto">
+      <h2 class="text-sm font-semibold text-[var(--foreground)] mb-4">
+        服务器配置
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- 服务器列表 -->
+        <div class="card p-3 flex flex-col overflow-hidden">
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
-          <h2 class="text-sm font-semibold text-[#E0E0E0]">服务器列表</h2>
+          <h2 class="text-sm font-semibold text-[var(--foreground)]">服务器列表</h2>
           <button @click="addNewServer" class="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
             添加服务器
           </button>
@@ -18,13 +23,13 @@
               'px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200',
               selectedServerId === server.id
                 ? 'border-[#409EFF] bg-[#409EFF]/10'
-                : 'border-[#3C3C3C] hover:border-[#5C5C5C] bg-[#1E1E1E]'
+                : 'border-[var(--card-border)] hover:border-[var(--scrollbar-thumb-hover)] bg-[var(--card-bg)]'
             ]"
             @click="selectServer(server.id)"
           >
             <div class="flex justify-between items-start mb-2">
               <div class="flex items-center gap-2">
-                <h3 class="text-sm font-medium text-[#E0E0E0]">{{ server.name }}</h3>
+                <h3 class="text-sm font-medium text-[var(--foreground)]">{{ server.name }}</h3>
               </div>
               <button
                 @click.stop="deleteServer(server.id)"
@@ -33,7 +38,7 @@
                 <Trash2 class="w-4 h-4 text-red-400" />
               </button>
             </div>
-            <div class="flex flex-col gap-1 text-xs text-[#8C8C8C]">
+            <div class="flex flex-col gap-1 text-xs text-[var(--muted-text)]">
               <div>服务器: {{ server.host }}:{{ server.port }}</div>
               <div>用户: {{ server.username }}</div>
               <div class="truncate" :title="server.frontendPath || server.remotePath">前端路径: {{ server.frontendPath || server.remotePath }}</div>
@@ -41,18 +46,18 @@
             </div>
           </div>
 
-          <div v-if="servers.length === 0" class="text-center py-8 text-[#8C8C8C]">
+          <div v-if="servers.length === 0" class="text-center py-8 text-[var(--muted-text)]">
             <Server class="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>暂无服务器配置</p>
           </div>
         </div>
       </div>
 
-      <!-- 右侧：配置表单 -->
-      <div class="card p-5 overflow-y-auto md:col-span-8">
-        <h2 class="text-sm font-semibold text-[#E0E0E0] mb-4">
-          {{ isEditing ? '编辑服务器' : '添加服务器' }}
-        </h2>
+        <!-- 配置表单 -->
+        <div class="card p-5 overflow-y-auto">
+          <h2 class="text-sm font-semibold text-[var(--foreground)] mb-4">
+            {{ isEditing ? '编辑服务器' : '添加服务器' }}
+          </h2>
 
         <form @submit.prevent="saveConfig" class="space-y-6">
           <!-- 1. 服务器信息 -->
@@ -63,7 +68,7 @@
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">服务器名称 *</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">服务器名称 *</label>
                 <input
                   v-model="form.name"
                   type="text"
@@ -75,7 +80,7 @@
 
               <div class="grid grid-cols-3 gap-3">
                 <div class="col-span-2">
-                  <label class="block text-sm font-medium text-[#B0B0B0] mb-2">主机地址 *</label>
+                  <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">主机地址 *</label>
                   <input
                     v-model="form.host"
                     type="text"
@@ -85,7 +90,7 @@
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-[#B0B0B0] mb-2">端口 *</label>
+                  <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">端口 *</label>
                   <input
                     v-model.number="form.port"
                     type="number"
@@ -97,7 +102,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">用户名 *</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">用户名 *</label>
                 <input
                   v-model="form.username"
                   type="text"
@@ -108,7 +113,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">认证方式</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">认证方式</label>
                 <div class="flex gap-3">
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input
@@ -117,7 +122,7 @@
                       value="password"
                       class="accent-[#409EFF]"
                     />
-                    <span class="text-[#E0E0E0]">密码</span>
+                    <span class="text-[var(--foreground)]">密码</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input
@@ -126,13 +131,13 @@
                       value="key"
                       class="accent-[#409EFF]"
                     />
-                    <span class="text-[#E0E0E0]">私钥</span>
+                    <span class="text-[var(--foreground)]">私钥</span>
                   </label>
                 </div>
               </div>
 
               <div v-if="authType === 'password'">
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">密码 *</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">密码 *</label>
                 <div class="relative">
                   <input
                     v-model="form.password"
@@ -144,7 +149,7 @@
                   <button
                     type="button"
                     @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C8C8C] hover:text-[#E0E0E0]"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-text)] hover:text-[var(--foreground)]"
                   >
                     <Eye v-if="!showPassword" class="w-4 h-4" />
                     <EyeOff v-else class="w-4 h-4" />
@@ -153,7 +158,7 @@
               </div>
 
               <div v-if="authType === 'key'">
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">私钥路径</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">私钥路径</label>
                 <input
                   v-model="form.privateKey"
                   type="text"
@@ -162,8 +167,9 @@
                 />
               </div>
 
+
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">错误重试次数</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">错误重试次数</label>
                 <input
                   v-model.number="form.retryCount"
                   type="number"
@@ -184,7 +190,7 @@
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">部署路径 *</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径 *</label>
                 <input
                   v-model="form.frontendPath"
                   type="text"
@@ -192,14 +198,14 @@
                   placeholder="/var/www/html"
                   required
                 />
-                <p class="text-xs text-[#8C8C8C] mt-1">
+                <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于部署前端静态文件，例如: /var/www/html
                 </p>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">
-                  上传后命令 <span class="text-[#8C8C8C]">(可选)</span>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
                 <textarea
                   v-model="form.frontendPostUploadCommand"
@@ -209,8 +215,8 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">
-                  日志命令 <span class="text-[#8C8C8C]">(可选)</span>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  日志命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
                 <input
                   v-model="form.frontendLogCommand"
@@ -218,7 +224,7 @@
                   class="input-field"
                   placeholder="tail -f /var/log/nginx/error.log"
                 />
-                <p class="text-xs text-[#8C8C8C] mt-1">
+                <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于查看前端nginx日志，例如: tail -f /var/log/nginx/error.log
                 </p>
               </div>
@@ -233,7 +239,7 @@
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">部署路径 *</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径 *</label>
                 <input
                   v-model="form.backendPath"
                   type="text"
@@ -241,14 +247,14 @@
                   placeholder="/var/www/backend"
                   required
                 />
-                <p class="text-xs text-[#8C8C8C] mt-1">
+                <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于部署后端服务代码，例如: /var/www/backend
                 </p>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">
-                  上传后命令 <span class="text-[#8C8C8C]">(可选)</span>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
                 <textarea
                   v-model="form.backendPostUploadCommand"
@@ -258,8 +264,8 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#B0B0B0] mb-2">
-                  日志命令 <span class="text-[#8C8C8C]">(可选)</span>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  日志命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
                 <input
                   v-model="form.backendLogCommand"
@@ -267,7 +273,7 @@
                   class="input-field"
                   placeholder="tail -f /var/log/server/app.log"
                 />
-                <p class="text-xs text-[#8C8C8C] mt-1">
+                <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于查看后端服务日志，例如: tail -f /var/log/server/app.log
                 </p>
               </div>
@@ -301,15 +307,16 @@
         </form>
       </div>
     </div>
-    
-    <!-- 连接测试结果弹窗 -->
+  </div>
+
+  <!-- 连接测试结果弹窗 -->
     <div
       v-if="connectionResult"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       @click="closeConnectionResult"
     >
       <div
-        class="bg-[#2A2A2A] rounded-lg p-6 max-w-md w-full mx-4"
+        class="bg-[var(--dialog-bg)] rounded-lg p-6 max-w-md w-full mx-4"
         :class="connectionResult.success ? 'border border-green-500/30' : 'border border-red-500/30'"
         @click.stop
       >
@@ -323,18 +330,18 @@
               :class="connectionResult.success ? 'bg-green-500' : 'bg-red-500'"
             ></div>
           </div>
-          <h3 class="text-lg font-semibold text-white">
+          <h3 class="text-lg font-semibold text-[var(--foreground)]">
             {{ connectionResult.success ? '连接成功' : '连接失败' }}
           </h3>
         </div>
-        
-        <p class="text-[#E0E0E0] mb-4">{{ connectionResult.message }}</p>
-        
+
+        <p class="text-[var(--foreground)] mb-4">{{ connectionResult.message }}</p>
+
         <div v-if="connectionResult.time" class="flex justify-between items-center mb-4">
-          <span class="text-sm text-[#8C8C8C]">连接耗时</span>
-          <span class="text-sm font-medium text-[#E0E0E0]">{{ connectionResult.time }}ms</span>
+          <span class="text-sm text-[var(--muted-text)]">连接耗时</span>
+          <span class="text-sm font-medium text-[var(--foreground)]">{{ connectionResult.time }}ms</span>
         </div>
-        
+
         <button
           @click="closeConnectionResult"
           class="w-full py-2 px-4 bg-[#409EFF] hover:bg-[#409EFF]/80 text-white rounded-md transition-colors"
@@ -343,11 +350,11 @@
         </button>
       </div>
     </div>
-  </div>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { Plus, Trash2, Server, Eye, EyeOff, Wifi } from 'lucide-vue-next';
 import { showSuccess, showError } from '../utils/notification';
 import type { ServerConfig } from '../../shared/types';
@@ -363,6 +370,7 @@ const authType = ref<'password' | 'key'>('password');
 const showPassword = ref(false);
 const testingConnection = ref(false);
 const connectionResult = ref<ConnectionTestResult | null>(null);
+
 
 const form = reactive({
   id: '',
@@ -528,6 +536,8 @@ async function testConnection() {
 function closeConnectionResult() {
   connectionResult.value = null;
 }
+
+
 
 onMounted(() => {
   loadServers();

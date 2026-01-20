@@ -7,7 +7,7 @@
 
           <!-- 日志类型选择 -->
           <div class="mb-4">
-            <h2 class="text-sm font-semibold text-[#E0E0E0]">
+            <h2 class="text-sm font-semibold text-[var(--foreground)]">
               日志类型
             </h2>
             <div class="flex gap-3 mt-2">
@@ -18,7 +18,7 @@
                   value="frontend"
                   class="accent-[#409EFF]"
                 />
-                <span class="text-[#E0E0E0]">前端</span>
+                <span class="text-[var(--foreground)]">前端</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
@@ -27,7 +27,7 @@
                   value="backend"
                   class="accent-[#409EFF]"
                 />
-                <span class="text-[#E0E0E0]">后端</span>
+                <span class="text-[var(--foreground)]">后端</span>
               </label>
             </div>
           </div>
@@ -60,11 +60,11 @@
       <div class="col-span-1 md:col-span-8 flex flex-col min-h-0">
         <div class="card p-5 flex-1 flex flex-col min-h-0">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-sm font-semibold text-[#E0E0E0]">
+            <h2 class="text-sm font-semibold text-[var(--foreground)]">
               {{ logType === 'frontend' ? '前端 Nginx 日志' : '后端服务日志' }}
             </h2>
             <div class="flex gap-2 items-center">
-              <span v-if="selectedServer" class="text-xs text-[#8C8C8C]">
+              <span v-if="selectedServer" class="text-xs text-[var(--muted-text)]">
                 {{ selectedServer.name }}
               </span>
             </div>
@@ -74,7 +74,7 @@
           <div
             ref="logContainer"
             @scroll="handleScroll"
-            class="bg-[#0D0D0D] rounded-lg p-4 flex-1 overflow-y-auto font-mono text-xs space-y-1 border border-[#3C3C3C]"
+            class="bg-[var(--log-bg)] rounded-lg p-4 flex-1 overflow-y-auto font-mono text-xs space-y-1 border border-[var(--card-border)]"
           >
             <div
               v-for="(log, index) in logs"
@@ -83,12 +83,12 @@
                 'text-green-400': log.type === 'success',
                 'text-red-400': log.type === 'error',
                 'text-blue-400': log.type === 'info',
-                'text-[#E0E0E0]': !log.type,
+                'text-[var(--foreground)]': !log.type,
               }"
             >
               [{{ log.time }}] {{ log.message }}
             </div>
-            <div v-if="logs.length === 0" class="text-[#5C5C5C]">暂无日志</div>
+            <div v-if="logs.length === 0" class="text-[var(--muted-text)]">暂无日志</div>
           </div>
         </div>
       </div>

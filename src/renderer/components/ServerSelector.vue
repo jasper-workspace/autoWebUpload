@@ -1,12 +1,12 @@
 <template>
-  <div class="mb-4">
-    <label class="block text-sm font-semibold text-[#E0E0E0] mb-2">
+  <div class="flex items-center gap-3 h-full">
+    <label class="text-sm font-semibold text-[var(--foreground)]">
       {{ label }}
     </label>
     <select
       :value="modelValue"
       @change="handleChange"
-      class="input-field h-[2.5rem]"
+      class="input-field h-[2.5rem] flex-1"
     >
       <option value="">{{ placeholder }}</option>
       <option

@@ -7,7 +7,7 @@
         @click="closeNotification"
       >
         <div
-          class="bg-[#2A2A2A] rounded-lg p-6 max-w-md w-full mx-4 border"
+          class="bg-[var(--dialog-bg)] rounded-lg p-6 max-w-md w-full mx-4 border"
           :class="getBorderClass()"
           @click.stop
         >
@@ -65,12 +65,12 @@
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-white">
+            <h3 class="text-lg font-semibold text-[var(--foreground)]">
               {{ title }}
             </h3>
           </div>
-          
-          <p class="text-[#E0E0E0]">{{ message }}</p>
+
+          <p class="text-[var(--foreground)]">{{ message }}</p>
         </div>
       </div>
     </transition>
@@ -146,7 +146,7 @@ defineExpose({
     // 设置自动关闭定时器（3秒后关闭）
     timer = setTimeout(() => {
       closeNotification();
-    }, 3000);
+    }, 1000);
   }
 });
 </script>

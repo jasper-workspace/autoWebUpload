@@ -214,13 +214,13 @@ function clearSelection() {
 }
 
 .upload-button {
-  border: 2px dashed #3C3C3C;
+  border: 2px dashed var(--card-border);
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: #1E1E1E;
+  background-color: var(--card-bg);
   position: relative;
   min-height: 120px;
   display: flex;
@@ -245,8 +245,8 @@ function clearSelection() {
 }
 
 .upload-button.disabled:hover {
-  border-color: #3C3C3C;
-  background-color: #1E1E1E;
+  border-color: var(--card-border);
+  background-color: var(--card-bg);
   transform: none;
 }
 
@@ -278,17 +278,17 @@ function clearSelection() {
 .upload-icon {
   width: 3rem;
   height: 3rem;
-  color: #8C8C8C;
+  color: var(--muted-text);
 }
 
 .upload-text {
-  color: #E0E0E0;
+  color: var(--foreground);
   font-size: 1rem;
   font-weight: 500;
 }
 
 .upload-hint {
-  color: #8C8C8C;
+  color: var(--muted-text);
   font-size: 0.875rem;
 }
 
@@ -310,7 +310,7 @@ function clearSelection() {
 }
 
 .folder-name {
-  color: #E0E0E0;
+  color: var(--foreground);
   font-size: 0.875rem;
   font-weight: 500;
   flex-grow: 1;
@@ -328,13 +328,13 @@ function clearSelection() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8C8C8C;
+  color: var(--muted-text);
   transition: all 0.2s;
 }
 
 .clear-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #E0E0E0;
+  background-color: rgba(64, 158, 255, 0.1);
+  color: var(--foreground);
 }
 
 .clear-icon {
@@ -353,14 +353,14 @@ function clearSelection() {
 .path-label {
   display: block;
   font-size: 0.75rem;
-  color: #8C8C8C;
+  color: var(--muted-text);
   margin-bottom: 0.25rem;
 }
 
 .path-text {
   display: block;
   font-size: 0.875rem;
-  color: #E0E0E0;
+  color: var(--foreground);
   font-family: monospace;
   word-break: break-all;
 }

@@ -7,6 +7,10 @@ const api = {
   deleteConfig: (id: string) => ipcRenderer.invoke('delete-config', id),
   getConfigs: () => ipcRenderer.invoke('get-configs'),
 
+  // 主题配置
+  getThemeConfig: () => ipcRenderer.invoke('get-theme-config'),
+  saveThemeConfig: (theme: string) => ipcRenderer.invoke('save-theme-config', theme),
+
   // SFTP 相关
   testConnection: (config: any) => ipcRenderer.invoke('test-connection', config),
   uploadFolder: (config: any, localPath: string) => ipcRenderer.invoke('upload-folder', config, localPath),
@@ -49,6 +53,13 @@ const api = {
   // 显示消息框
   showMessageBox: (options: { type: string; title: string; message: string; buttons: string[] }) => 
     ipcRenderer.invoke('show-message-box', options),
+
+  // 更新相关
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  openUpdateUrl: (url: string) => ipcRenderer.invoke('open-update-url', url),
+  saveIgnoreVersion: (version: string) => ipcRenderer.invoke('save-ignore-version', version),
+  getUpdateConfig: () => ipcRenderer.invoke('get-update-config'),
+  saveUpdateConfig: (config: any) => ipcRenderer.invoke('save-update-config', config),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

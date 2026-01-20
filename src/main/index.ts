@@ -1,11 +1,24 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron';
 import path from 'path';
+import Store from 'electron-store';
 import { setupIpcHandlers } from './ipc/handlers';
 import { logger, logDir } from './logger';
+
+const appStore = new Store({ name: 'app-configs' });
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  // 获取主题配置，默认使用深色主题
+  const theme = appStore.get('theme', 'system') as 'dark' | 'light' | 'system';
+  
+  // 确定窗口背景色和标题栏颜色
+  const backgroundColor = theme === 'light' 
+    ? '#FAFAFA' 
+    : (theme === 'system' ? (nativeTheme.shouldUseDarkColors ? '#1E1E1E' : '#FAFAFA') : '#1E1E1E');
+  const titleBarColor = backgroundColor;
+  const titleBarSymbolColor = backgroundColor === '#FAFAFA' ? '#000000' : '#FFFFFF';
+  
   mainWindow = new BrowserWindow({
     title: `Linux 服务器自动部署工具 v${app.getVersion()}`,
     width: 1200,
@@ -20,8 +33,13 @@ function createWindow() {
       nodeIntegration: false
     },
     autoHideMenuBar: true,
-    backgroundColor: '#1E1E1E',
-    titleBarStyle: 'default'
+    backgroundColor: backgroundColor,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: titleBarColor,
+      symbolColor: titleBarSymbolColor,
+      height: 32
+    }
   });
 
   // 监听窗口事件
@@ -81,6 +99,27 @@ app.whenReady().then(() => {
   
   setupIpcHandlers();
   createWindow();
+
+  // 监听系统主题变化
+  nativeTheme.on('updated', () => {
+    const theme = appStore.get('theme', 'system') as 'dark' | 'light' | 'system';
+    
+    // 只有在 "system" 模式下才响应系统主题变化
+    if (theme === 'system') {
+      const backgroundColor = nativeTheme.shouldUseDarkColors ? '#1E1E1E' : '#FAFAFA';
+      const titleBarColor = backgroundColor;
+      const titleBarSymbolColor = backgroundColor === '#FAFAFA' ? '#000000' : '#FFFFFF';
+      const win = BrowserWindow.getAllWindows()[0];
+      
+      if (win) {
+        win.setBackgroundColor(backgroundColor);
+        win.setTitleBarOverlay({
+          color: titleBarColor,
+          symbolColor: titleBarSymbolColor
+        });
+      }
+    }
+  });
 
   app.on('activate', () => {
     logger.info('应用激活事件');
