@@ -12,7 +12,7 @@
       <NavBar ref="navbarRef" />
 
       <!-- 主内容区 - 路由出口 -->
-      <div class="flex-1 px-6 py-4 overflow-auto">
+      <div class="flex-1 px-6 py-4 overflow-hidden">
         <router-view />
       </div>
 

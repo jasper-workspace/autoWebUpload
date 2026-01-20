@@ -1,13 +1,8 @@
 <template>
   <div class="max-w-7xl mx-auto h-full flex flex-col">
-    <div class="card p-5 overflow-y-auto">
-      <h2 class="text-sm font-semibold text-[var(--foreground)] mb-4">
-        服务器配置
-      </h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <!-- 服务器列表 -->
-        <div class="card p-3 flex flex-col overflow-hidden">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 overflow-hidden">
+      <!-- 服务器列表 -->
+      <div class="card p-3 flex flex-col overflow-hidden md:col-span-4">
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
           <h2 class="text-sm font-semibold text-[var(--foreground)]">服务器列表</h2>
           <button @click="addNewServer" class="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
@@ -15,33 +10,26 @@
           </button>
         </div>
 
-        <div class="space-y-3 overflow-y-auto flex-1 mb-4">
-          <div
-            v-for="server in servers"
-            :key="server.id"
-            :class="[
-              'px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200',
-              selectedServerId === server.id
-                ? 'border-[#409EFF] bg-[#409EFF]/10'
-                : 'border-[var(--card-border)] hover:border-[var(--scrollbar-thumb-hover)] bg-[var(--card-bg)]'
-            ]"
-            @click="selectServer(server.id)"
-          >
+        <div class="space-y-3 overflow-y-auto flex-1 pr-2">
+          <div v-for="server in servers" :key="server.id" :class="[
+            'px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200',
+            selectedServerId === server.id
+              ? 'border-[#409EFF] bg-[#409EFF]/10'
+              : 'border-[var(--card-border)] hover:border-[var(--scrollbar-thumb-hover)] bg-[var(--card-bg)]'
+          ]" @click="selectServer(server.id)">
             <div class="flex justify-between items-start mb-2">
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-medium text-[var(--foreground)]">{{ server.name }}</h3>
               </div>
-              <button
-                @click.stop="deleteServer(server.id)"
-                class="p-1 hover:bg-red-500/20 rounded transition-colors"
-              >
+              <button @click.stop="deleteServer(server.id)" class="p-1 hover:bg-red-500/20 rounded transition-colors">
                 <Trash2 class="w-4 h-4 text-red-400" />
               </button>
             </div>
             <div class="flex flex-col gap-1 text-xs text-[var(--muted-text)]">
               <div>服务器: {{ server.host }}:{{ server.port }}</div>
               <div>用户: {{ server.username }}</div>
-              <div class="truncate" :title="server.frontendPath || server.remotePath">前端路径: {{ server.frontendPath || server.remotePath }}</div>
+              <div class="truncate" :title="server.frontendPath || server.remotePath">前端路径: {{ server.frontendPath ||
+                server.remotePath }}</div>
               <div class="truncate" :title="server.backendPath">后端路径: {{ server.backendPath }}</div>
             </div>
           </div>
@@ -53,13 +41,13 @@
         </div>
       </div>
 
-        <!-- 配置表单 -->
-        <div class="card p-5 overflow-y-auto">
-          <h2 class="text-sm font-semibold text-[var(--foreground)] mb-4">
-            {{ isEditing ? '编辑服务器' : '添加服务器' }}
-          </h2>
+      <!-- 配置表单 -->
+      <div class="card p-5 overflow-y-auto flex flex-col h-full md:col-span-8">
+        <h2 class="text-sm font-semibold text-[var(--foreground)] mb-4">
+          {{ isEditing ? '编辑服务器' : '添加服务器' }}
+        </h2>
 
-        <form @submit.prevent="saveConfig" class="space-y-6">
+        <div class="space-y-6 overflow-y-auto flex-1 pr-2">
           <!-- 1. 服务器信息 -->
           <div class="section">
             <h3 class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
@@ -68,89 +56,47 @@
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">服务器名称 *</label>
-                <input
-                  v-model="form.name"
-                  type="text"
-                  class="input-field"
-                  placeholder="例如: 生产环境服务器"
-                  required
-                />
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">服务器名称</label>
+                <input v-model="form.name" type="text" class="input-field" placeholder="例如: 生产环境服务器" />
               </div>
 
               <div class="grid grid-cols-3 gap-3">
                 <div class="col-span-2">
-                  <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">主机地址 *</label>
-                  <input
-                    v-model="form.host"
-                    type="text"
-                    class="input-field"
-                    placeholder="192.168.1.100"
-                    required
-                  />
+                  <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">主机地址</label>
+                  <input v-model="form.host" type="text" class="input-field" placeholder="192.168.1.100" />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">端口 *</label>
-                  <input
-                    v-model.number="form.port"
-                    type="number"
-                    class="input-field"
-                    placeholder="22"
-                    required
-                  />
+                  <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">端口</label>
+                  <input v-model.number="form.port" type="number" class="input-field" placeholder="22" />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">用户名 *</label>
-                <input
-                  v-model="form.username"
-                  type="text"
-                  class="input-field"
-                  placeholder="root"
-                  required
-                />
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">用户名</label>
+                <input v-model="form.username" type="text" class="input-field" placeholder="root" />
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">认证方式</label>
                 <div class="flex gap-3">
                   <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                      v-model="authType"
-                      type="radio"
-                      value="password"
-                      class="accent-[#409EFF]"
-                    />
+                    <input v-model="authType" type="radio" value="password" class="accent-[#409EFF]" />
                     <span class="text-[var(--foreground)]">密码</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                      v-model="authType"
-                      type="radio"
-                      value="key"
-                      class="accent-[#409EFF]"
-                    />
+                    <input v-model="authType" type="radio" value="key" class="accent-[#409EFF]" />
                     <span class="text-[var(--foreground)]">私钥</span>
                   </label>
                 </div>
               </div>
 
               <div v-if="authType === 'password'">
-                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">密码 *</label>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">密码</label>
                 <div class="relative">
-                  <input
-                    v-model="form.password"
-                    :type="showPassword ? 'text' : 'password'"
-                    class="input-field pr-10"
-                    placeholder="请输入密码"
-                    required
-                  />
-                  <button
-                    type="button"
-                    @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-text)] hover:text-[var(--foreground)]"
-                  >
+                  <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="input-field pr-10"
+                    placeholder="请输入密码" />
+                  <button type="button" @click="showPassword = !showPassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-text)] hover:text-[var(--foreground)]">
                     <Eye v-if="!showPassword" class="w-4 h-4" />
                     <EyeOff v-else class="w-4 h-4" />
                   </button>
@@ -159,25 +105,13 @@
 
               <div v-if="authType === 'key'">
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">私钥路径</label>
-                <input
-                  v-model="form.privateKey"
-                  type="text"
-                  class="input-field"
-                  placeholder="/path/to/private/key"
-                />
+                <input v-model="form.privateKey" type="text" class="input-field" placeholder="/path/to/private/key" />
               </div>
 
 
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">错误重试次数</label>
-                <input
-                  v-model.number="form.retryCount"
-                  type="number"
-                  class="input-field"
-                  placeholder="3"
-                  min="0"
-                  max="10"
-                />
+                <input v-model.number="form.retryCount" type="number" class="input-field" placeholder="3" />
               </div>
             </div>
           </div>
@@ -190,14 +124,8 @@
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径 *</label>
-                <input
-                  v-model="form.frontendPath"
-                  type="text"
-                  class="input-field"
-                  placeholder="/var/www/html"
-                  required
-                />
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径</label>
+                <input v-model="form.frontendPath" type="text" class="input-field" placeholder="/var/www/html" />
                 <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于部署前端静态文件，例如: /var/www/html
                 </p>
@@ -207,23 +135,16 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <textarea
-                  v-model="form.frontendPostUploadCommand"
-                  class="input-field h-20 resize-none"
-                  placeholder="chmod -R 755 /var/www/html"
-                ></textarea>
+                <textarea v-model="form.frontendPostUploadCommand" class="input-field h-20 resize-none"
+                  placeholder="chmod -R 755 /var/www/html"></textarea>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   日志命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <input
-                  v-model="form.frontendLogCommand"
-                  type="text"
-                  class="input-field"
-                  placeholder="tail -f /var/log/nginx/error.log"
-                />
+                <input v-model="form.frontendLogCommand" type="text" class="input-field"
+                  placeholder="tail -f /var/log/nginx/error.log" />
                 <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于查看前端nginx日志，例如: tail -f /var/log/nginx/error.log
                 </p>
@@ -239,14 +160,8 @@
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径 *</label>
-                <input
-                  v-model="form.backendPath"
-                  type="text"
-                  class="input-field"
-                  placeholder="/var/www/backend"
-                  required
-                />
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径</label>
+                <input v-model="form.backendPath" type="text" class="input-field" placeholder="/var/www/backend" />
                 <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于部署后端服务代码，例如: /var/www/backend
                 </p>
@@ -256,23 +171,16 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <textarea
-                  v-model="form.backendPostUploadCommand"
-                  class="input-field h-20 resize-none"
-                  placeholder="npm install && pm2 restart app"
-                ></textarea>
+                <textarea v-model="form.backendPostUploadCommand" class="input-field h-20 resize-none"
+                  placeholder="npm install && pm2 restart app"></textarea>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   日志命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <input
-                  v-model="form.backendLogCommand"
-                  type="text"
-                  class="input-field"
-                  placeholder="tail -f /var/log/server/app.log"
-                />
+                <input v-model="form.backendLogCommand" type="text" class="input-field"
+                  placeholder="tail -f /var/log/server/app.log" />
                 <p class="text-xs text-[var(--muted-text)] mt-1">
                   用于查看后端服务日志，例如: tail -f /var/log/server/app.log
                 </p>
@@ -280,55 +188,33 @@
             </div>
           </div>
 
-          <div class="flex gap-3 pt-4">
-            <button type="submit" class="btn-primary flex-1 text-sm">
+          <div class="flex gap-3 pt-4 flex-shrink-0">
+            <button type="button" @click="saveConfig" class="btn-primary flex-1 text-sm">
               {{ isEditing ? '更新配置' : '保存配置' }}
             </button>
-            <button
-              v-if="isEditing"
-              type="button"
-              @click="testConnection"
-              :disabled="testingConnection"
-              class="btn-primary flex items-center justify-center gap-2 text-sm"
-            >
+            <button v-if="isEditing" type="button" @click="testConnection" :disabled="testingConnection"
+              class="btn-primary flex items-center justify-center gap-2 text-sm">
               <Wifi v-if="!testingConnection" class="w-4 h-4" />
               <div v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               {{ testingConnection ? '测试中...' : '测试连接' }}
             </button>
-            <button
-              v-if="isEditing"
-              type="button"
-              @click="resetForm"
-              class="btn-secondary text-sm"
-            >
+            <button v-if="isEditing" type="button" @click="resetForm" class="btn-secondary text-sm">
               取消
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- 连接测试结果弹窗 -->
-    <div
-      v-if="connectionResult"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click="closeConnectionResult"
-    >
-      <div
-        class="bg-[var(--dialog-bg)] rounded-lg p-6 max-w-md w-full mx-4"
-        :class="connectionResult.success ? 'border border-green-500/30' : 'border border-red-500/30'"
-        @click.stop
-      >
+    <!-- 连接测试结果弹窗 -->
+    <div v-if="connectionResult" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      @click="closeConnectionResult">
+      <div class="bg-[var(--dialog-bg)] rounded-lg p-6 max-w-md w-full mx-4"
+        :class="connectionResult.success ? 'border border-green-500/30' : 'border border-red-500/30'" @click.stop>
         <div class="flex items-center gap-3 mb-4">
-          <div
-            class="w-10 h-10 rounded-full flex items-center justify-center"
-            :class="connectionResult.success ? 'bg-green-500/20' : 'bg-red-500/20'"
-          >
-            <div
-              class="w-6 h-6 rounded-full"
-              :class="connectionResult.success ? 'bg-green-500' : 'bg-red-500'"
-            ></div>
+          <div class="w-10 h-10 rounded-full flex items-center justify-center"
+            :class="connectionResult.success ? 'bg-green-500/20' : 'bg-red-500/20'">
+            <div class="w-6 h-6 rounded-full" :class="connectionResult.success ? 'bg-green-500' : 'bg-red-500'"></div>
           </div>
           <h3 class="text-lg font-semibold text-[var(--foreground)]">
             {{ connectionResult.success ? '连接成功' : '连接失败' }}
@@ -342,15 +228,13 @@
           <span class="text-sm font-medium text-[var(--foreground)]">{{ connectionResult.time }}ms</span>
         </div>
 
-        <button
-          @click="closeConnectionResult"
-          class="w-full py-2 px-4 bg-[#409EFF] hover:bg-[#409EFF]/80 text-white rounded-md transition-colors"
-        >
+        <button @click="closeConnectionResult"
+          class="w-full py-2 px-4 bg-[#409EFF] hover:bg-[#409EFF]/80 text-white rounded-md transition-colors">
           确定
         </button>
       </div>
     </div>
-    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -364,8 +248,12 @@ import { useServerStore } from '../stores/server';
 
 const serverStore = useServerStore();
 
-const servers = ref<ServerConfig[]>([]);
-const selectedServerId = ref('');
+// 使用store中的状态
+const servers = computed(() => serverStore.servers);
+const selectedServerId = computed({
+  get: () => serverStore.selectedServerId,
+  set: (value) => serverStore.setSelectedServerId(value)
+});
 const authType = ref<'password' | 'key'>('password');
 const showPassword = ref(false);
 const testingConnection = ref(false);
@@ -394,26 +282,28 @@ const isEditing = computed(() => !!form.id);
 
 async function loadServers() {
   try {
-    servers.value = await window.electronAPI.getConfigs();
+    await serverStore.loadServers();
+    console.log('加载服务器列表成功:', servers.value);
   } catch (error) {
     console.error('加载服务器列表失败:', error);
+    showError('操作失败', '加载服务器列表失败，请重试');
   }
 }
 
 function addNewServer() {
   resetForm();
-  selectedServerId.value = '';
+  serverStore.clearSelectedServer();
 }
 
 async function selectServer(id: string) {
-  selectedServerId.value = id;
+  serverStore.setSelectedServerId(id);
   const server = servers.value.find(s => s.id === id);
   if (server) {
     form.id = server.id;
-    form.name = server.name;
-    form.host = server.host;
-    form.port = server.port;
-    form.username = server.username;
+    form.name = server.name || '';
+    form.host = server.host || '';
+    form.port = server.port || 22;
+    form.username = server.username || '';
     form.password = server.password || '';
     form.privateKey = server.privateKey || '';
     form.frontendPath = server.frontendPath || server.remotePath || '';
@@ -449,26 +339,40 @@ function resetForm() {
 }
 
 async function saveConfig() {
+  console.log('保存配置，表单数据:', form);
+
+  // 基本验证，确保关键字段不为空
+  if (!form.name.trim() || !form.host.trim() || !form.username.trim()) {
+    showError('操作失败', '服务器名称、主机地址和用户名不能为空');
+    return;
+  }
+
   const config: ServerConfig = {
     id: form.id || Date.now().toString(),
-    name: form.name,
-    host: form.host,
-    port: form.port,
-    username: form.username,
+    name: form.name.trim() || '未命名服务器',
+    host: form.host.trim() || '',
+    port: form.port || 22,
+    username: form.username.trim() || '',
     password: authType.value === 'password' ? form.password : undefined,
     privateKey: authType.value === 'key' ? form.privateKey : undefined,
-    frontendPath: form.frontendPath,
-    backendPath: form.backendPath,
+    frontendPath: form.frontendPath.trim() || '',
+    backendPath: form.backendPath.trim() || '',
+    remotePath: form.frontendPath.trim() || '', // 保持向后兼容
     frontendLogCommand: form.frontendLogCommand || undefined,
     backendLogCommand: form.backendLogCommand || undefined,
     frontendPostUploadCommand: form.frontendPostUploadCommand || undefined,
     backendPostUploadCommand: form.backendPostUploadCommand || undefined,
-    retryCount: form.retryCount,
+    retryCount: form.retryCount || 3,
     postUploadCommand: form.postUploadCommand || undefined
   };
 
   try {
+    console.log('准备保存配置:', config);
     await serverStore.saveConfig(config);
+    console.log('配置保存成功');
+
+    // 重新加载服务器列表，确保数据是最新的
+    await loadServers();
 
     // 显示成功提示
     const action = isEditing.value ? '更新' : '保存';
@@ -476,7 +380,7 @@ async function saveConfig() {
 
     if (!isEditing.value) {
       resetForm();
-      selectedServerId.value = config.id;
+      serverStore.setSelectedServerId(config.id);
     } else {
       // 编辑模式:重新加载表单缓存
       await selectServer(config.id);
@@ -493,9 +397,9 @@ async function deleteServer(id: string) {
   try {
     await window.electronAPI.deleteConfig(id);
     await loadServers();
-    if (selectedServerId.value === id) {
+    if (serverStore.selectedServerId === id) {
       resetForm();
-      selectedServerId.value = '';
+      serverStore.clearSelectedServer();
     }
   } catch (error) {
     console.error('删除配置失败:', error);
@@ -503,11 +407,6 @@ async function deleteServer(id: string) {
 }
 
 async function testConnection() {
-  if (!form.host || !form.port || !form.username) {
-    showError('操作失败', '请填写服务器配置信息');
-    return;
-  }
-
   testingConnection.value = true;
 
   try {
@@ -539,8 +438,8 @@ function closeConnectionResult() {
 
 
 
-onMounted(() => {
-  loadServers();
+onMounted(async () => {
+  await loadServers();
 });
 </script>
 

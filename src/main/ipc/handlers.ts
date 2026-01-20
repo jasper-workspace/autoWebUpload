@@ -55,6 +55,11 @@ export function setupIpcHandlers() {
 
   // 保存配置
   ipcMain.handle('save-config', (_, config: ServerConfig) => {
+    // 基本验证，确保配置对象有效
+    if (!config || !config.id) {
+      throw new Error('无效的配置对象');
+    }
+
     const servers = store.get('servers', []) as ServerConfig[];
     const index = servers.findIndex(s => s.id === config.id);
 
