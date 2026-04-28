@@ -49,6 +49,10 @@ function createWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     logger.info('页面加载完成');
+    // 开发环境自动打开开发者工具
+    if (process.env.VITE_DEV_SERVER_URL) {
+      mainWindow!.webContents.openDevTools();
+    }
   });
 
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
@@ -59,7 +63,6 @@ function createWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     logger.info('开发环境，加载开发服务器');
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools();
   } else {
     // 在打包环境中，使用 file:// 协议加载 HTML 文件
     const htmlPath = path.join(__dirname, '../../dist/index.html');
@@ -68,8 +71,6 @@ function createWindow() {
     try {
       mainWindow.loadFile(htmlPath);
       logger.info('HTML 文件加载成功');
-      // 临时打开开发者工具以诊断问题
-      mainWindow.webContents.openDevTools();
     } catch (error) {
       logger.error('HTML 文件加载失败', error);
     }

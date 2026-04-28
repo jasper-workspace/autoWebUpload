@@ -50,6 +50,10 @@ declare global {
       saveIgnoreVersion: (version: string) => Promise<{ success: boolean; error?: string }>;
       getUpdateConfig: () => Promise<any>;
       saveUpdateConfig: (config: any) => Promise<any>;
+
+      // 配置导入导出
+      exportConfigs: (configs: ServerConfig[]) => Promise<{ success: boolean; filePath?: string; error?: string; message?: string }>;
+      importConfigs: (mergeMode?: 'merge' | 'replace') => Promise<{ success: boolean; count?: number; configs?: ServerConfig[]; error?: string; message?: string }>;
     };
     isUploading?: () => boolean;
     cancelUpload?: () => void;

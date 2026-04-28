@@ -1,5 +1,6 @@
 import { ipcMain, dialog, BrowserWindow, app, shell, nativeTheme } from 'electron';
 import Store from 'electron-store';
+import fs from 'fs/promises';
 import { SFTPService } from '../services/sftp';
 import { UpdateService } from '../services/update';
 import { createLogger } from '../logger';
@@ -441,6 +442,86 @@ export function setupIpcHandlers() {
     } catch (error: any) {
       logger.error('保存不再提示版本号失败', error);
       return { success: false, error: error.message };
+    }
+  });
+
+  // 导出服务器配置
+  ipcMain.handle('export-configs', async (_, configs: ServerConfig[]) => {
+    try {
+      const result = await dialog.showSaveDialog({
+        title: '导出服务器配置',
+        defaultPath: `server-configs-${new Date().toISOString().slice(0, 10)}.json`,
+        filters: [
+          { name: 'JSON 文件', extensions: ['json'] },
+          { name: '所有文件', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: false, message: '用户取消导出' };
+      }
+
+      // 直接导出配置（包括密码和私钥）
+      const exportData = configs.map(config => ({ ...config }));
+
+      await fs.writeFile(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8');
+      logger.info('配置导出成功', { filePath: result.filePath, count: configs.length });
+      return { success: true, filePath: result.filePath };
+    } catch (error: any) {
+      logger.error('导出配置失败', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 导入服务器配置
+  ipcMain.handle('import-configs', async (_, mergeMode: 'merge' | 'replace' = 'merge') => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: '导入服务器配置',
+        filters: [
+          { name: 'JSON 文件', extensions: ['json'] },
+          { name: '所有文件', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, message: '用户取消导入' };
+      }
+
+      const filePath = result.filePaths[0];
+      const content = await fs.readFile(filePath, 'utf-8');
+      const importedConfigs = JSON.parse(content) as ServerConfig[];
+
+      if (!Array.isArray(importedConfigs)) {
+        return { success: false, error: '文件格式错误：期望 JSON 数组' };
+      }
+
+      // 验证配置对象
+      for (const config of importedConfigs) {
+        if (!config.id || !config.host || !config.username) {
+          return { success: false, error: '配置数据不完整，缺少必要字段' };
+        }
+      }
+
+      const currentConfigs = store.get('servers', []) as ServerConfig[];
+      let finalConfigs: ServerConfig[];
+
+      if (mergeMode === 'replace') {
+        finalConfigs = importedConfigs;
+      } else {
+        // 合并模式：导入的配置不覆盖已有配置，而是添加新配置
+        const existingIds = new Set(currentConfigs.map(c => c.id));
+        const newConfigs = importedConfigs.filter(c => !existingIds.has(c.id));
+        finalConfigs = [...currentConfigs, ...newConfigs];
+      }
+
+      store.set('servers', finalConfigs);
+      logger.info('配置导入成功', { filePath, count: importedConfigs.length, mode: mergeMode });
+      return { success: true, count: importedConfigs.length, configs: finalConfigs };
+    } catch (error: any) {
+      logger.error('导入配置失败', error);
+      return { success: false, error: error.message || '导入失败' };
     }
   });
 }

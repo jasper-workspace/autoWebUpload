@@ -60,6 +60,10 @@ const api = {
   saveIgnoreVersion: (version: string) => ipcRenderer.invoke('save-ignore-version', version),
   getUpdateConfig: () => ipcRenderer.invoke('get-update-config'),
   saveUpdateConfig: (config: any) => ipcRenderer.invoke('save-update-config', config),
+
+  // 配置导入导出
+  exportConfigs: (configs: any) => ipcRenderer.invoke('export-configs', configs),
+  importConfigs: (mergeMode?: 'merge' | 'replace') => ipcRenderer.invoke('import-configs', mergeMode),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

@@ -1,13 +1,30 @@
 <template>
   <div class="max-w-7xl mx-auto h-full flex flex-col">
+    <!-- 顶部工具栏 -->
+    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+      <h2 class="text-lg font-semibold text-[var(--foreground)]">服务器配置</h2>
+      <div class="flex items-center gap-2">
+        <button @click="importConfigs" class="btn-secondary flex items-center gap-2 px-3 py-1.5 text-sm">
+          <Download class="w-4 h-4" />
+          导入
+        </button>
+        <button @click="exportConfigs" class="btn-secondary flex items-center gap-2 px-3 py-1.5 text-sm">
+          <Upload class="w-4 h-4" />
+          导出
+        </button>
+        <button @click="addNewServer" class="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
+          <Plus class="w-4 h-4" />
+          添加服务器
+        </button>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 overflow-hidden">
       <!-- 服务器列表 -->
       <div class="card p-3 flex flex-col overflow-hidden md:col-span-4">
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
           <h2 class="text-sm font-semibold text-[var(--foreground)]">服务器列表</h2>
-          <button @click="addNewServer" class="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
-            添加服务器
-          </button>
+          <span class="text-xs text-[var(--muted-text)]">{{ servers.length }} 台服务器</span>
         </div>
 
         <div class="space-y-3 overflow-y-auto flex-1 pr-2">
@@ -239,7 +256,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { Plus, Trash2, Server, Eye, EyeOff, Wifi } from 'lucide-vue-next';
+import { Plus, Trash2, Server, Eye, EyeOff, Wifi, Download, Upload } from 'lucide-vue-next';
 import { showSuccess, showError } from '../utils/notification';
 import type { ServerConfig } from '../../shared/types';
 import type { ConnectionTestResult } from '../../shared/types';
@@ -434,6 +451,42 @@ async function testConnection() {
 // 关闭连接测试结果弹窗
 function closeConnectionResult() {
   connectionResult.value = null;
+}
+
+// 导出服务器配置
+async function exportConfigs() {
+  if (servers.value.length === 0) {
+    showError('导出失败', '没有可导出的服务器配置');
+    return;
+  }
+
+  try {
+    // 将响应式对象转换为普通对象后再传递
+    const plainConfigs = servers.value.map(s => ({ ...s }));
+    const result = await window.electronAPI.exportConfigs(plainConfigs);
+    if (result.success) {
+      showSuccess('导出成功', `配置已导出到: ${result.filePath}`);
+    } else if (result.message !== '用户取消导出') {
+      showError('导出失败', result.error || '导出失败');
+    }
+  } catch (error: any) {
+    showError('导出失败', error.message || '导出失败');
+  }
+}
+
+// 导入服务器配置
+async function importConfigs() {
+  try {
+    const result = await window.electronAPI.importConfigs('replace');
+    if (result.success) {
+      await loadServers();
+      showSuccess('导入成功', `成功导入 ${result.count} 个服务器配置`);
+    } else if (result.message !== '用户取消导入') {
+      showError('导入失败', result.error || '导入失败');
+    }
+  } catch (error: any) {
+    showError('导入失败', error.message || '导入失败');
+  }
 }
 
 
