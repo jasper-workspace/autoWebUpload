@@ -54,6 +54,16 @@ declare global {
       // 配置导入导出
       exportConfigs: (configs: ServerConfig[]) => Promise<{ success: boolean; filePath?: string; error?: string; message?: string }>;
       importConfigs: (mergeMode?: 'merge' | 'replace') => Promise<{ success: boolean; count?: number; configs?: ServerConfig[]; error?: string; message?: string }>;
+
+      // ==================== 终端相关 ====================
+      terminalConnect: (options: { serverId: string; cols: number; rows: number }) => Promise<{ success: boolean; error?: string }>;
+      terminalDisconnect: () => Promise<{ success: boolean; error?: string }>;
+      terminalWrite: (data: string) => void;
+      terminalResize: (options: { cols: number; rows: number }) => void;
+      onTerminalData: (callback: (data: string) => void) => void;
+      onTerminalClose: (callback: () => void) => void;
+      onTerminalError: (callback: (error: string) => void) => void;
+      removeTerminalListeners: () => void;
     };
     isUploading?: () => boolean;
     cancelUpload?: () => void;

@@ -31,3 +31,24 @@ export interface ConnectionTestResult {
   message: string;
   time?: number;
 }
+
+// ==================== 终端类型 ====================
+
+export interface TerminalState {
+  isConnected: boolean;
+  currentServerId: string | null;
+  commandHistory: string[];
+  historyIndex: number;
+  prompt: string;
+}
+
+export interface TerminalConnectOptions {
+  serverId: string;
+  cols: number;
+  rows: number;
+}
+
+export interface TerminalResizeOptions {
+  cols: number;
+  rows: number;
+}

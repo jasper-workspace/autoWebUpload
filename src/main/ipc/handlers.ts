@@ -3,8 +3,9 @@ import Store from 'electron-store';
 import fs from 'fs/promises';
 import { SFTPService } from '../services/sftp';
 import { UpdateService } from '../services/update';
+import { terminalService } from '../services/terminal';
 import { createLogger } from '../logger';
-import type { ServerConfig, UploadProgress } from '../../shared/types';
+import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions } from '../../shared/types';
 
 const store = new Store({ name: 'server-configs' });
 const appStore = new Store({ name: 'app-configs' });
@@ -26,6 +27,70 @@ export function setupIpcHandlers() {
   // 实时日志流相关变量
   let logStreamSftp: SFTPService | null = null;
   let logStreamActive = false;
+
+  // ==================== 终端相关处理器 ====================
+
+  // 连接终端
+  ipcMain.handle('terminal:connect', async (event, options: TerminalConnectOptions) => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (!win) {
+      throw new Error('窗口未找到');
+    }
+
+    // 获取服务器配置
+    const servers = store.get('servers', []) as ServerConfig[];
+    const config = servers.find(s => s.id === options.serverId);
+
+    if (!config) {
+      throw new Error('服务器配置未找到');
+    }
+
+    try {
+      await terminalService.connect(
+        config,
+        options.cols,
+        options.rows,
+        // onData callback
+        (data: string) => {
+          win.webContents.send('terminal:data', data);
+        },
+        // onClose callback
+        () => {
+          win.webContents.send('terminal:close', null);
+        },
+        // onError callback
+        (error: string) => {
+          win.webContents.send('terminal:error', error);
+        }
+      );
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 断开终端连接
+  ipcMain.handle('terminal:disconnect', async () => {
+    try {
+      await terminalService.disconnect();
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 发送数据到终端
+  ipcMain.on('terminal:write', (_, data: string) => {
+    terminalService.write(data);
+  });
+
+  // 调整终端尺寸
+  ipcMain.on('terminal:resize', (_, options: TerminalResizeOptions) => {
+    terminalService.resize(options.cols, options.rows);
+  });
+
+  // ==================== 日志相关处理器 ====================
 
   // 处理来自渲染进程的日志
   ipcMain.on('log-message', (_, logEntry) => {

@@ -24,7 +24,7 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Logs',
     component: () => import('../pages/LogPage.vue'),
     meta: {
-      title: '系统日志',
+      title: '终端',
       showServerSelector: true
     }
   },

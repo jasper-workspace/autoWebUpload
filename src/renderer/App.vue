@@ -13,7 +13,11 @@
 
       <!-- 主内容区 - 路由出口 -->
       <div class="flex-1 px-6 py-4 overflow-hidden">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive include="Log">
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </div>
 
       <!-- 全局通知组件 -->

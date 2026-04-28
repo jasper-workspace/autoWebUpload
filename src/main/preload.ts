@@ -64,6 +64,44 @@ const api = {
   // 配置导入导出
   exportConfigs: (configs: any) => ipcRenderer.invoke('export-configs', configs),
   importConfigs: (mergeMode?: 'merge' | 'replace') => ipcRenderer.invoke('import-configs', mergeMode),
+
+  // ==================== 终端相关 ====================
+
+  // 连接终端
+  terminalConnect: (options: { serverId: string; cols: number; rows: number }) =>
+    ipcRenderer.invoke('terminal:connect', options),
+
+  // 断开终端
+  terminalDisconnect: () => ipcRenderer.invoke('terminal:disconnect'),
+
+  // 发送数据到终端
+  terminalWrite: (data: string) => ipcRenderer.send('terminal:write', data),
+
+  // 调整终端尺寸
+  terminalResize: (options: { cols: number; rows: number }) =>
+    ipcRenderer.send('terminal:resize', options),
+
+  // 监听终端数据
+  onTerminalData: (callback: (data: string) => void) => {
+    ipcRenderer.on('terminal:data', (_, data) => callback(data));
+  },
+
+  // 监听终端关闭
+  onTerminalClose: (callback: () => void) => {
+    ipcRenderer.on('terminal:close', () => callback());
+  },
+
+  // 监听终端错误
+  onTerminalError: (callback: (error: string) => void) => {
+    ipcRenderer.on('terminal:error', (_, error) => callback(error));
+  },
+
+  // 移除终端监听器
+  removeTerminalListeners: () => {
+    ipcRenderer.removeAllListeners('terminal:data');
+    ipcRenderer.removeAllListeners('terminal:close');
+    ipcRenderer.removeAllListeners('terminal:error');
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

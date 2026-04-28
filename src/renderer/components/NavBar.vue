@@ -22,7 +22,7 @@
           ? 'bg-[#409EFF] text-white'
           : 'text-[var(--muted-text)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)]'
       ]">
-        系统日志
+        终端
       </router-link>
       <router-link to="/config" :class="[
         'px-6 py-2 rounded-lg font-medium transition-all duration-200',

@@ -1,94 +1,110 @@
 <template>
   <div class="max-w-7xl mx-auto h-full flex flex-col">
     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
-      <!-- 左侧：配置区域 -->
-      <div class="col-span-1 md:col-span-4 flex flex-col min-h-0">
+      <!-- 左侧：快捷命令区域 -->
+      <div class="col-span-1 md:col-span-3 flex flex-col min-h-0">
         <div class="card p-4 h-full flex flex-col">
+          <!-- 连接状态 -->
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-sm text-[var(--foreground)]">状态:</span>
+            <span
+              :class="[
+                'px-2 py-0.5 rounded text-xs font-medium',
+                isConnected
+                  ? 'bg-green-500/20 text-green-400'
+                  : 'bg-gray-500/20 text-gray-400'
+              ]"
+            >
+              {{ isConnected ? '已连接' : '未连接' }}
+            </span>
+          </div>
 
-          <!-- 日志类型选择 -->
+          <!-- 快捷命令 -->
           <div class="mb-4">
-            <h2 class="text-sm font-semibold text-[var(--foreground)]">
-              日志类型
-            </h2>
-            <div class="flex gap-3 mt-2">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  v-model="logType"
-                  type="radio"
-                  value="frontend"
-                  class="accent-[#409EFF]"
-                />
-                <span class="text-[var(--foreground)]">前端</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  v-model="logType"
-                  type="radio"
-                  value="backend"
-                  class="accent-[#409EFF]"
-                />
-                <span class="text-[var(--foreground)]">后端</span>
-              </label>
+            <h3 class="text-sm font-semibold text-[var(--foreground)] mb-2">
+              快捷命令
+            </h3>
+            <div class="flex flex-col gap-2">
+              <button
+                @click="sendCommand('clear')"
+                :disabled="!isConnected"
+                class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
+              >
+                clear - 清屏
+              </button>
+              <button
+                @click="sendCommand('ls -la')"
+                :disabled="!isConnected"
+                class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
+              >
+                ls -la - 列出目录
+              </button>
+              <button
+                @click="sendCommand('ps aux | head -20')"
+                :disabled="!isConnected"
+                class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
+              >
+                ps aux - 查看进程
+              </button>
             </div>
           </div>
 
           <!-- 操作按钮 -->
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-3 mt-auto">
             <button
-              v-if="!isStreaming"
-              @click="startLogStream"
-              :disabled="!canFetchLogs || isOperating"
+              v-if="!isConnected"
+              @click="connect"
+              :disabled="!selectedServer || isConnecting"
               class="btn-primary w-full flex items-center justify-center gap-2 text-sm"
             >
-              <Play class="w-4 h-4" />
-              开始实时日志
+              <span v-if="isConnecting" class="animate-spin">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+              </span>
+              <span>{{ isConnecting ? '连接中...' : '连接终端' }}</span>
             </button>
             <button
               v-else
-              @click="stopLogStream"
-              :disabled="isOperating"
+              @click="disconnect"
+              :disabled="isDisconnecting"
               class="btn-danger w-full flex items-center justify-center gap-2 text-sm"
             >
-              <StopCircle class="w-4 h-4" />
-              停止实时日志
+              <span>{{ isDisconnecting ? '断开中...' : '断开连接' }}</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- 右侧：日志显示 -->
-      <div class="col-span-1 md:col-span-8 flex flex-col min-h-0">
-        <div class="card p-5 flex-1 flex flex-col min-h-0">
-          <div class="flex justify-between items-center mb-4">
+      <!-- 右侧：交互式终端 -->
+      <div class="col-span-1 md:col-span-9 flex flex-col min-h-0">
+        <div class="card p-4 h-full flex flex-col">
+          <div class="flex justify-between items-center mb-2">
             <h2 class="text-sm font-semibold text-[var(--foreground)]">
-              {{ logType === 'frontend' ? '前端 Nginx 日志' : '后端服务日志' }}
+              交互式终端
             </h2>
             <div class="flex gap-2 items-center">
               <span v-if="selectedServer" class="text-xs text-[var(--muted-text)]">
                 {{ selectedServer.name }}
               </span>
+              <span v-if="isConnected" class="text-xs text-green-400">
+                ● 已连接
+              </span>
             </div>
           </div>
 
-          <!-- 日志输出 -->
-          <div
-            ref="logContainer"
-            @scroll="handleScroll"
-            class="bg-[var(--log-bg)] rounded-lg p-4 flex-1 overflow-y-auto font-mono text-xs space-y-1 border border-[var(--card-border)]"
-          >
-            <div
-              v-for="(log, index) in logs"
-              :key="index"
-              :class="{
-                'text-green-400': log.type === 'success',
-                'text-red-400': log.type === 'error',
-                'text-blue-400': log.type === 'info',
-                'text-[var(--foreground)]': !log.type,
-              }"
-            >
-              [{{ log.time }}] {{ log.message }}
-            </div>
-            <div v-if="logs.length === 0" class="text-[var(--muted-text)]">暂无日志</div>
+          <!-- 终端面板 -->
+          <div class="flex-1 bg-[#1e1e1e] rounded-lg overflow-hidden min-h-[400px]">
+            <TerminalPanel
+              ref="terminalPanelRef"
+              @data="handleTerminalData"
+            />
+          </div>
+
+          <!-- 提示信息 -->
+          <div class="mt-2 text-xs text-[var(--muted-text)]">
+            <span>提示: Ctrl+C 中断命令 | ↑↓ 历史命令 | clear 清屏</span>
           </div>
         </div>
       </div>
@@ -97,219 +113,132 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted, watch, onActivated } from 'vue';
-import { Play, StopCircle } from 'lucide-vue-next';
+import { ref, computed, onMounted, onUnmounted, onActivated } from 'vue';
 import { useServerStore } from '../stores/server';
-import { useLogStore } from '../stores/log';
-import type { ServerConfig } from '../../shared/types';
-import { toSerializableConfig } from '../utils/config';
+import { useTerminalStore } from '../stores/terminal';
+import TerminalPanel from '../components/TerminalPanel.vue';
+
+// 定义组件名称，用于 keep-alive
+defineOptions({
+  name: 'Log'
+});
 
 const serverStore = useServerStore();
-const logStore = useLogStore();
+const terminalStore = useTerminalStore();
 
-const logType = computed({
-  get: () => logStore.logType,
-  set: (value: 'frontend' | 'backend') => { logStore.logType = value; }
-});
-const isStreaming = computed(() => logStore.isStreaming);
-const logs = computed(() => logStore.logs);
-const logContainer = ref<HTMLElement | null>(null);
+// Refs
+const terminalPanelRef = ref<InstanceType<typeof TerminalPanel> | null>(null);
+const isConnecting = ref(false);
+const isDisconnecting = ref(false);
 
+// 计算属性 - 直接使用 serverStore 的选中服务器
 const selectedServer = computed(() => serverStore.selectedServer);
+const isConnected = computed(() => terminalStore.isConnected);
 
-const canFetchLogs = computed(() => {
-  if (!selectedServer.value) return false;
-  
-  const command = logType.value === 'frontend'
-    ? selectedServer.value.frontendLogCommand
-    : selectedServer.value.backendLogCommand;
-    
-  return !!command && command.trim() !== '';
+// 页面首次加载
+onMounted(async () => {
+  await serverStore.loadServers();
+
+  // 初始化终端监听器
+  initTerminalListeners();
 });
 
-const isUserScrolling = ref(false);
-let scrollTimeout: NodeJS.Timeout | null = null;
-// 操作标志
-let isOperating = ref(false); // 统一的操作标志，防止重复操作
-
-// 监听服务器变化，清空日志
-watch(selectedServer, () => {
-  logStore.clearLogs();
+// 页面激活时（从缓存恢复）
+onActivated(() => {
+  // 重新注册监听器，因为之前可能移除了
+  initTerminalListeners();
 });
 
-// 监听日志类型切换，清空日志
-watch(logType, async (newType) => {
-  if (!selectedServer.value) return;
-  
-  // 清空日志
-  logStore.clearLogs();
-  
-  // 检查是否有配置的命令
-  const command = newType === 'frontend'
-    ? selectedServer.value.frontendLogCommand
-    : selectedServer.value.backendLogCommand;
-    
-  if (!command || command.trim() === '') {
-    logStore.addLog(`提示：未配置${newType === 'frontend' ? '前端' : '后端'}日志命令，请在服务器配置中添加`, 'info');
-  }
-}, { immediate: false });
+// 页面卸载时只移除监听器，保持连接
+onUnmounted(() => {
+  removeTerminalListeners();
+});
 
-// 添加日志
-function addLog(message: string, type?: string) {
-  logStore.addLog(message, type);
+// 初始化终端监听器
+function initTerminalListeners() {
+  // 先移除旧监听器，避免重复注册
+  window.electronAPI.removeTerminalListeners();
 
-  scrollToBottom();
-}
+  window.electronAPI.onTerminalData((data: string) => {
+    terminalPanelRef.value?.write(data);
+  });
 
-// 滚动到底部
-function scrollToBottom() {
-  nextTick(() => {
-    if (logContainer.value) {
-      // 只有在用户没有滚动时才自动滚动到底部
-      if (!isUserScrolling.value) {
-        logContainer.value.scrollTop = logContainer.value.scrollHeight;
-      }
-    }
+  window.electronAPI.onTerminalClose(() => {
+    terminalStore.setDisconnected();
+    terminalPanelRef.value?.writeln('\r\n[连接已关闭]\r\n');
+  });
+
+  window.electronAPI.onTerminalError((error: string) => {
+    terminalPanelRef.value?.writeln(`\r\n[错误: ${error}]\r\n`);
   });
 }
 
-// 处理滚动事件
-function handleScroll() {
-  if (!logContainer.value) return;
-  
-  const container = logContainer.value;
-  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-  
-  // 如果用户向上滚动，标记为用户正在滚动
-  if (!isAtBottom) {
-    isUserScrolling.value = true;
-    
-    // 清除之前的超时
-    if (scrollTimeout) {
-      clearTimeout(scrollTimeout);
-    }
-    
-    // 设置新的超时，如果用户停止滚动2秒，则恢复自动滚动
-    scrollTimeout = setTimeout(() => {
-      isUserScrolling.value = false;
-    }, 2000);
-  } else {
-    // 如果用户滚动到底部，恢复自动滚动
-    isUserScrolling.value = false;
-  }
+// 移除终端监听器
+function removeTerminalListeners() {
+  window.electronAPI.removeTerminalListeners();
 }
 
-// 清空日志
-function clearLogs() {
-  logStore.clearLogs();
-}
-
-// 启动实时日志流
-async function startLogStream() {
-
-  if (isOperating.value) {
+// 连接终端
+async function connect() {
+  if (!selectedServer.value || isConnecting.value || isDisconnecting.value) {
     return;
   }
 
-  if (!selectedServer.value || !canFetchLogs.value) {
-    addLog("请先选择服务器并确保配置了日志命令", "error");
-    return;
-  }
-
-  const logCommand = logType.value === 'frontend'
-    ? selectedServer.value.frontendLogCommand
-    : selectedServer.value.backendLogCommand;
-
-  if (!logCommand) {
-    addLog("日志命令未配置", "error");
-    return;
-  }
-
-  isOperating.value = true;
-  clearLogs();
-  addLog("开始实时日志流...", "info");
-  addLog(`执行命令: ${logCommand}`, "info");
-
-  logStore.startStream();
+  isConnecting.value = true;
 
   try {
-    const serializableConfig = toSerializableConfig(selectedServer.value);
+    // 获取终端尺寸
+    const size = terminalPanelRef.value?.getSize() || { cols: 80, rows: 24 };
 
-    // 启动日志流（不在这里设置监听器，onMounted中已设置）
-    await window.electronAPI.startLogStream(serializableConfig, logCommand);
-
-    // addLog("实时日志流已启动", "success");
-  } catch (error: any) {
-    console.error('启动日志流出错:', error);
-    addLog(`启动日志流出错: ${error.message || '未知错误'}`, "error");
-  } finally {
-    // 无论是成功还是失败，都重置标志
-    isOperating.value = false;
-  }
-}
-
-// 停止实时日志流
-async function stopLogStream() {
-
-  if (isOperating.value) {
-    return;
-  }
-
-  isOperating.value = true;
-  addLog("正在停止实时日志流...", "info");
-
-  // 先设置标志，停止接收新的日志数据
-  logStore.stopStream();
-
-  try {
-    await window.electronAPI.stopLogStream();
-    // 不在这里移除监听器，监听器由 onMounted/onUnmounted 管理
-    addLog("实时日志流已停止", "success");
-  } catch (error: any) {
-    console.error('停止日志流出错:', error);
-    addLog(`停止日志流出错: ${error.message || '未知错误'}`, "error");
-  } finally {
-    // 无论如何都重置标志
-    isOperating.value = false;
-  }
-}
-
-onMounted(() => {
-  // 先移除旧的监听器，避免重复
-  window.electronAPI.removeLogStreamListeners();
-
-  window.electronAPI.onLogStream((log: string) => {
-    if (!logStore.shouldReceiveLogs) return;
-
-    const lines = log.split('\n');
-    lines.forEach((line) => {
-      if (line.trim()) {
-        logStore.addLog(line);
-      }
+    // 连接终端
+    const result = await window.electronAPI.terminalConnect({
+      serverId: selectedServer.value.id,
+      cols: size.cols,
+      rows: size.rows,
     });
 
-    // 滚动到底部
-    scrollToBottom();
-  });
-
-  window.electronAPI.onLogStreamError((error: string) => {
-    if (!logStore.shouldReceiveLogs) return;
-    logStore.addLog(`日志流出错: ${error}`, "error");
-  });
-});
-
-onUnmounted(() => {
-  // 清理超时
-  if (scrollTimeout) {
-    clearTimeout(scrollTimeout);
+    if (result.success) {
+      terminalStore.setConnected(selectedServer.value.id);
+      terminalPanelRef.value?.writeln(`[连接到 ${selectedServer.value.name}]`);
+      terminalPanelRef.value?.writeln('');
+    } else {
+      throw new Error(result.error || '连接失败');
+    }
+  } catch (error: any) {
+    terminalPanelRef.value?.writeln(`\r\n[连接失败: ${error.message}]\r\n`);
+    terminalStore.setDisconnected();
+  } finally {
+    isConnecting.value = false;
   }
+}
 
-  // 移除日志监听器
-  window.electronAPI.removeLogStreamListeners();
-});
+// 断开连接
+async function disconnect() {
+  if (isDisconnecting.value) return;
 
-onActivated(() => {
-  // 页面激活时，检查并刷新配置
-  serverStore.refreshIfNeeded();
-});
+  isDisconnecting.value = true;
+
+  try {
+    await window.electronAPI.terminalDisconnect();
+    terminalStore.setDisconnected();
+    terminalPanelRef.value?.writeln('\r\n[已断开连接]\r\n');
+  } catch (error: any) {
+    terminalPanelRef.value?.writeln(`\r\n[断开失败: ${error.message}]\r\n`);
+  } finally {
+    isDisconnecting.value = false;
+  }
+}
+
+// 处理终端数据输入
+function handleTerminalData(data: string) {
+  window.electronAPI.terminalWrite(data);
+}
+
+// 发送快捷命令
+function sendCommand(command: string) {
+  if (!isConnected.value) return;
+
+  // 发送命令到终端
+  window.electronAPI.terminalWrite(command + '\r');
+}
 </script>
