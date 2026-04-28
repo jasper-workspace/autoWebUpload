@@ -119,3 +119,4 @@ dist
 release
 dist-electron
 package-lock.json
+/documents
