@@ -1,7 +1,20 @@
 {
   "name": "auto-web-upload",
   "version": "1.5.1",
+  "author": "jasper",
   "description": "Linux 服务器文件自动部署工具",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/just-jasper/auto-web-upload"
+  },
+  "keywords": [
+    "electron",
+    "sftp",
+    "deploy",
+    "linux",
+    "vue3"
+  ],
   "main": "dist-electron/main/index.js",
   "scripts": {
     "dev": "vite",

@@ -264,6 +264,27 @@ export function setupIpcHandlers() {
     return app.getVersion();
   });
 
+  // 获取应用信息（版本号和作者）
+  ipcMain.handle('get-app-info', async () => {
+    try {
+      const packagePath = app.isPackaged
+        ? process.resourcesPath + '/app/package.json'
+        : require.resolve('../../package.json');
+      const packageContent = await fsPromises.readFile(packagePath, 'utf-8');
+      const pkg = JSON.parse(packageContent);
+      return {
+        version: pkg.version || app.getVersion(),
+        author: pkg.author || ''
+      };
+    } catch (error) {
+      logger.error('获取应用信息失败', error);
+      return {
+        version: app.getVersion(),
+        author: ''
+      };
+    }
+  });
+
   // 获取主题配置
   ipcMain.handle('get-theme-config', () => {
     const theme = appStore.get('theme', 'system') as ThemeMode;

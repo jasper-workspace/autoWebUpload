@@ -42,6 +42,7 @@ declare global {
       
       // 应用信息
       getAppVersion: () => Promise<string>;
+      getAppInfo: () => Promise<{ version: string; author: string }>;
       showMessageBox: (options: { type: string; title: string; message: string; buttons: string[] }) => Promise<any>;
       
       // 更新相关

@@ -49,6 +49,7 @@ const api = {
 
   // 获取版本号
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
 
   // 显示消息框
   showMessageBox: (options: { type: string; title: string; message: string; buttons: string[] }) => 
