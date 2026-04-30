@@ -80,6 +80,33 @@ export function setupIpcHandlers() {
     }
   });
 
+  // 断开所有连接（终端和日志流）
+  ipcMain.handle('disconnect-all', async () => {
+    logger.info('disconnect-all IPC处理程序被调用');
+
+    // 停止日志流
+    logStreamActive = false;
+    if (logStreamSftp) {
+      try {
+        await logStreamSftp.disconnect();
+        logger.info('日志流连接已断开');
+      } catch (e) {
+        logger.error('断开日志流连接时出错:', e);
+      }
+      logStreamSftp = null;
+    }
+
+    // 断开终端连接
+    try {
+      await terminalService.disconnect();
+      logger.info('终端连接已断开');
+    } catch (e) {
+      logger.error('断开终端连接时出错:', e);
+    }
+
+    return { success: true };
+  });
+
   // 发送数据到终端
   ipcMain.on('terminal:write', (_, data: string) => {
     terminalService.write(data);

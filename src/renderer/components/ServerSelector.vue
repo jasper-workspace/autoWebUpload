@@ -32,7 +32,7 @@
       leave-to-class="transform scale-95 opacity-0">
       <div
         v-if="isOpen"
-        class="absolute top-full left-20 right-0 mt-1 z-50 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg shadow-lg overflow-hidden">
+        class="absolute top-full left-20 w-[200px] mt-1 z-50 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg shadow-lg overflow-hidden">
         <div class="py-1 overflow-y-auto max-h-120">
           <button
             v-for="server in serverStore.servers"

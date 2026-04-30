@@ -159,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, onActivated } from 'vue';
+import { ref, computed, onMounted, onUnmounted, onActivated, watch } from 'vue';
 import { useServerStore } from '../stores/server';
 import { useTerminalStore } from '../stores/terminal';
 import TerminalPanel from '../components/TerminalPanel.vue';
@@ -177,6 +177,8 @@ const terminalPanelRef = ref<InstanceType<typeof TerminalPanel> | null>(null);
 const isConnecting = ref(false);
 const isDisconnecting = ref(false);
 const isViewingLog = ref(false); // 是否正在查看实时日志
+const isServerSwitching = ref(false); // 是否正在切换服务器
+let closeDebounceTimer: NodeJS.Timeout | null = null; // close事件防抖定时器
 
 // 计算属性 - 直接使用 serverStore 的选中服务器
 const selectedServer = computed(() => serverStore.selectedServer);
@@ -201,6 +203,28 @@ onUnmounted(() => {
   removeTerminalListeners();
 });
 
+// 监听服务器切换，重置日志查看状态并断开所有连接
+watch(() => serverStore.selectedServerId, async (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    // 标记为服务器切换，避免在 onTerminalClose 中重复打印消息
+    isServerSwitching.value = true;
+    // 服务器切换时，断开所有连接
+    try {
+      await window.electronAPI.disconnectAll();
+    } catch (error) {
+      console.error('断开连接失败:', error);
+    }
+    // 重置终端状态
+    terminalStore.setDisconnected();
+    // 重置日志查看状态
+    isViewingLog.value = false;
+    // 清空终端显示并提示用户
+    terminalPanelRef.value?.writeln('\r\n[服务器已切换，连接已断开]\r\n');
+    // 重置标志
+    isServerSwitching.value = false;
+  }
+});
+
 // 初始化终端监听器
 function initTerminalListeners() {
   // 先移除旧监听器，避免重复注册
@@ -211,9 +235,20 @@ function initTerminalListeners() {
   });
 
   window.electronAPI.onTerminalClose(() => {
+    // 防抖：如果已经有定时器在运行，说明之前已经处理过，直接返回
+    if (closeDebounceTimer) {
+      return;
+    }
     terminalStore.setDisconnected();
     isViewingLog.value = false;
-    terminalPanelRef.value?.writeln('\r\n[连接已关闭]\r\n');
+    // 只有在非服务器切换时才打印消息，避免重复
+    if (!isServerSwitching.value) {
+      terminalPanelRef.value?.writeln('\r\n[连接已关闭]\r\n');
+    }
+    // 设置一个短的延迟来防止重复触发
+    closeDebounceTimer = setTimeout(() => {
+      closeDebounceTimer = null;
+    }, 100);
   });
 
   window.electronAPI.onTerminalError((error: string) => {

@@ -58,6 +58,7 @@ declare global {
       // ==================== 终端相关 ====================
       terminalConnect: (options: { serverId: string; cols: number; rows: number }) => Promise<{ success: boolean; error?: string }>;
       terminalDisconnect: () => Promise<{ success: boolean; error?: string }>;
+      disconnectAll: () => Promise<{ success: boolean; error?: string }>;
       terminalWrite: (data: string) => void;
       terminalResize: (options: { cols: number; rows: number }) => void;
       onTerminalData: (callback: (data: string) => void) => void;

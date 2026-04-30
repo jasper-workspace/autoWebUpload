@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { ServerConfig } from '../../shared/types';
 
 export const useServerStore = defineStore('server', () => {
@@ -79,23 +79,50 @@ export const useServerStore = defineStore('server', () => {
   
   // 设置选中的服务器ID
   function setSelectedServerId(id: string) {
+    // 如果切换到不同的服务器，断开所有连接
+    if (id && id !== selectedServerId.value) {
+      disconnectAll();
+    }
     selectedServerId.value = id;
   }
-  
+
   // 清除选中的服务器
   function clearSelectedServer() {
     selectedServerId.value = '';
   }
+
+  // 断开所有连接（终端和日志流）
+  async function disconnectAll() {
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI?.disconnectAll) {
+        await window.electronAPI.disconnectAll();
+        console.log('服务器切换，所有连接已断开');
+      }
+    } catch (error) {
+      console.error('断开所有连接失败:', error);
+    }
+  }
+
+  // 监听服务器切换，自动断开所有连接
+  let previousServerId = selectedServerId.value;
+  watch(selectedServerId, (newId) => {
+    // 只有当切换到不同服务器时才断开连接
+    if (newId && newId !== previousServerId) {
+      disconnectAll();
+    }
+    previousServerId = newId;
+  });
   
-  return { 
-    servers, 
-    selectedServerId, 
+  return {
+    servers,
+    selectedServerId,
     selectedServer,
     lastUpdateTime,
     loadServers,
     saveConfig,
     refreshIfNeeded,
     setSelectedServerId,
-    clearSelectedServer
+    clearSelectedServer,
+    disconnectAll
   };
 });

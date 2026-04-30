@@ -74,6 +74,9 @@ const api = {
   // 断开终端
   terminalDisconnect: () => ipcRenderer.invoke('terminal:disconnect'),
 
+  // 断开所有连接（终端和日志流）
+  disconnectAll: () => ipcRenderer.invoke('disconnect-all'),
+
   // 发送数据到终端
   terminalWrite: (data: string) => ipcRenderer.send('terminal:write', data),
 
