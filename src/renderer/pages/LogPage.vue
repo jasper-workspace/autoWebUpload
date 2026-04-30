@@ -49,6 +49,52 @@
             </div>
           </div>
 
+          <!-- 日志命令 -->
+          <div class="mb-4">
+            <h3 class="text-sm font-semibold text-[var(--foreground)] mb-2">
+              日志命令
+            </h3>
+            <div class="flex flex-col gap-2">
+              <!-- 停止日志按钮 -->
+              <button
+                v-if="isViewingLog"
+                @click="stopLog"
+                class="btn-danger w-full text-left px-3 py-2 text-xs rounded border border-red-500/50 hover:bg-red-500/20 transition-colors"
+              >
+                <span>停止日志</span>
+                <span class="block text-[var(--muted-text)] truncate">中断实时日志</span>
+              </button>
+              <!-- 日志按钮 -->
+              <template v-else>
+                <button
+                  v-if="selectedServer?.frontendLogCommand"
+                  @click="executeLogCommand('frontend')"
+                  :disabled="!isConnected"
+                  class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
+                >
+                  <span class="text-blue-400">前端日志</span>
+                  <span class="block text-[var(--muted-text)] truncate" :title="selectedServer.frontendLogCommand">
+                    {{ selectedServer.frontendLogCommand }}
+                  </span>
+                </button>
+                <button
+                  v-if="selectedServer?.backendLogCommand"
+                  @click="executeLogCommand('backend')"
+                  :disabled="!isConnected"
+                  class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
+                >
+                  <span class="text-purple-400">后端日志</span>
+                  <span class="block text-[var(--muted-text)] truncate" :title="selectedServer.backendLogCommand">
+                    {{ selectedServer.backendLogCommand }}
+                  </span>
+                </button>
+                <div v-if="!selectedServer?.frontendLogCommand && !selectedServer?.backendLogCommand" class="text-xs text-[var(--muted-text)] px-3 py-2">
+                  当前服务器未配置日志命令
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- 操作按钮 -->
           <div class="flex flex-col gap-3 mt-auto">
             <button
@@ -130,6 +176,7 @@ const terminalStore = useTerminalStore();
 const terminalPanelRef = ref<InstanceType<typeof TerminalPanel> | null>(null);
 const isConnecting = ref(false);
 const isDisconnecting = ref(false);
+const isViewingLog = ref(false); // 是否正在查看实时日志
 
 // 计算属性 - 直接使用 serverStore 的选中服务器
 const selectedServer = computed(() => serverStore.selectedServer);
@@ -165,6 +212,7 @@ function initTerminalListeners() {
 
   window.electronAPI.onTerminalClose(() => {
     terminalStore.setDisconnected();
+    isViewingLog.value = false;
     terminalPanelRef.value?.writeln('\r\n[连接已关闭]\r\n');
   });
 
@@ -221,6 +269,7 @@ async function disconnect() {
   try {
     await window.electronAPI.terminalDisconnect();
     terminalStore.setDisconnected();
+    isViewingLog.value = false;
     terminalPanelRef.value?.writeln('\r\n[已断开连接]\r\n');
   } catch (error: any) {
     terminalPanelRef.value?.writeln(`\r\n[断开失败: ${error.message}]\r\n`);
@@ -237,8 +286,28 @@ function handleTerminalData(data: string) {
 // 发送快捷命令
 function sendCommand(command: string) {
   if (!isConnected.value) return;
-
-  // 发送命令到终端
   window.electronAPI.terminalWrite(command + '\r');
+}
+
+// 执行日志命令
+function executeLogCommand(type: 'frontend' | 'backend') {
+  if (!isConnected.value || !selectedServer.value) return;
+
+  const command = type === 'frontend'
+    ? selectedServer.value.frontendLogCommand
+    : selectedServer.value.backendLogCommand;
+
+  if (command) {
+    window.electronAPI.terminalWrite('clear\r');
+    isViewingLog.value = true;
+    window.electronAPI.terminalWrite(command + '\r');
+  }
+}
+
+// 停止实时日志
+function stopLog() {
+  if (!isConnected.value) return;
+  window.electronAPI.terminalWrite('\x03');
+  isViewingLog.value = false;
 }
 </script>

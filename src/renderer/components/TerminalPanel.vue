@@ -1,51 +1,59 @@
 <template>
   <div ref="terminalContainer" class="terminal-panel"></div>
+  <!-- 自定义右键菜单 -->
+  <Teleport to="body">
+    <div
+      v-if="contextMenuVisible"
+      class="context-menu"
+      :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
+      @click.stop
+    >
+      <div class="context-menu-item" @click="doCopy">
+        复制
+      </div>
+      <div class="context-menu-item" @click="doPaste">
+        粘贴
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" @click="doSelectAll">
+        全选
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
 const emit = defineEmits<{
   (e: 'data', data: string): void;
-  (e: 'execute', command: string): void;
 }>();
 
 const terminalContainer = ref<HTMLElement | null>(null);
 let terminal: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
 
-// 终端是否准备好
-const isReady = ref(false);
-
-// 用户是否正在滚动
-const isUserScrolling = ref(false);
-let scrollTimeout: NodeJS.Timeout | null = null;
-
-// 命令历史
-const commandHistory: string[] = [];
-let historyIndex = -1;
-let currentInput = '';
-
-// 输入状态
-let inputBuffer = '';
+// 右键菜单状态
+const contextMenuVisible = ref(false);
+const contextMenuX = ref(0);
+const contextMenuY = ref(0);
 
 onMounted(async () => {
   await nextTick();
   initTerminal();
+  document.addEventListener('click', closeContextMenu);
 });
 
 onUnmounted(() => {
   dispose();
 });
 
-// 初始化终端
 function initTerminal() {
   if (!terminalContainer.value) return;
 
-  // 创建终端实例
   terminal = new Terminal({
     cursorBlink: true,
     cursorStyle: 'block',
@@ -55,232 +63,137 @@ function initTerminal() {
       background: '#000000',
       foreground: '#d4d4d4',
       cursor: '#ffffff',
-      cursorAccent: '#000000',
       selectionBackground: '#264f78',
-      black: '#000000',
-      red: '#f44747',
-      green: '#608b4e',
-      yellow: '#dcdcaa',
-      blue: '#569cd6',
-      magenta: '#c586c0',
-      cyan: '#4ec9b0',
-      white: '#d4d4d4',
-      brightBlack: '#808080',
-      brightRed: '#f44747',
-      brightGreen: '#608b4e',
-      brightYellow: '#dcdcaa',
-      brightBlue: '#569cd6',
-      brightMagenta: '#c586c0',
-      brightCyan: '#4ec9b0',
-      brightWhite: '#ffffff',
     },
     scrollback: 1000,
     allowProposedApi: true,
   });
 
-  // 加载 FitAddon
   fitAddon = new FitAddon();
   terminal.loadAddon(fitAddon);
-
-  // 打开终端
   terminal.open(terminalContainer.value);
 
-  // 适应尺寸
   nextTick(() => {
     if (fitAddon) {
       fitAddon.fit();
     }
+    // 在 xterm 元素上添加右键监听
+    const xtermEl = terminalContainer.value?.querySelector('.xterm') as HTMLElement;
+    if (xtermEl) {
+      xtermEl.addEventListener('contextmenu', onContextMenu);
+    }
   });
 
-  // 监听数据输入（包含普通字符和特殊按键）
+  // 监听数据输入
   terminal.onData((data) => {
-    // 上下箭头: \x1b[A, \x1b[B
-    if (data === '\x1b[A') {
-      // 上箭头 - 上一条历史
-      handleHistoryPrev();
+    // Ctrl+V 粘贴
+    if (data === '\x16') {
+      doPaste();
       return;
     }
-    if (data === '\x1b[B') {
-      // 下箭头 - 下一条历史
-      handleHistoryNext();
-      return;
-    }
-
-    // 直接发送其他所有数据（包括回车、Ctrl+C等）
     emit('data', data);
-
-    // 如果是回车，清空输入缓冲区
-    if (data === '\r') {
-      inputBuffer = '';
-    }
   });
-
-  // 监听滚动事件
-  terminal.onScroll(() => {
-    handleScroll();
-  });
-
-  isReady.value = true;
-
-  // 监听窗口大小变化
-  window.addEventListener('resize', handleResize);
 }
 
-// 处理上一条历史命令
-function handleHistoryPrev() {
-  if (commandHistory.length === 0) return;
+// 右键菜单事件处理
+function onContextMenu(e: MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
 
-  // 如果是第一次按上箭头，保存当前输入
-  if (historyIndex === -1) {
-    currentInput = '';
+  let x = e.clientX;
+  let y = e.clientY;
+
+  // 边界检测
+  const menuWidth = 120;
+  const menuHeight = 140;
+
+  if (x + menuWidth > window.innerWidth) {
+    x = window.innerWidth - menuWidth - 10;
   }
-
-  if (historyIndex < commandHistory.length - 1) {
-    historyIndex++;
-    const prevCommand = commandHistory[commandHistory.length - 1 - historyIndex];
-
-    // 发送退格键清空当前行（简化处理）
-    // 先发送足够多的退格
-    const clearLine = '\x1b[2K\r'; // 清除整行并回到行首
-    emit('data', clearLine);
-
-    // 发送提示符和历史命令
-    emit('data', prevCommand);
-    currentInput = prevCommand;
+  if (y + menuHeight > window.innerHeight) {
+    y = window.innerHeight - menuHeight - 10;
   }
+  if (x < 10) x = 10;
+  if (y < 10) y = 10;
+
+  contextMenuX.value = x;
+  contextMenuY.value = y;
+  contextMenuVisible.value = true;
 }
 
-// 处理下一条历史命令
-function handleHistoryNext() {
-  if (historyIndex === -1) return;
-
-  if (historyIndex > 0) {
-    historyIndex--;
-    const nextCommand = commandHistory[commandHistory.length - 1 - historyIndex];
-
-    // 清除当前行
-    const clearLine = '\x1b[2K\r';
-    emit('data', clearLine);
-    emit('data', nextCommand);
-    currentInput = nextCommand;
-  } else {
-    // 已经到最后了，恢复空输入
-    historyIndex = -1;
-    const clearLine = '\x1b[2K\r';
-    emit('data', clearLine);
-    currentInput = '';
-  }
+// 关闭右键菜单
+function closeContextMenu() {
+  contextMenuVisible.value = false;
 }
 
-// 添加到历史记录
-function addToHistory(command: string) {
-  if (command.trim() === '') return;
-
-  // 避免重复添加连续相同的命令
-  const lastCommand = commandHistory[commandHistory.length - 1];
-  if (lastCommand !== command) {
-    commandHistory.push(command);
-  }
-
-  // 重置历史索引
-  historyIndex = -1;
-  currentInput = '';
-}
-
-// 清空历史
-function clearHistory() {
-  commandHistory.length = 0;
-  historyIndex = -1;
-  currentInput = '';
-}
-
-// 处理滚动
-function handleScroll() {
-  if (!terminal) return;
-
-  const viewportElement = terminal.element?.querySelector('.xterm-viewport');
-  if (!viewportElement) return;
-
-  const isAtBottom =
-    viewportElement.scrollHeight - viewportElement.scrollTop - viewportElement.clientHeight < 50;
-
-  if (!isAtBottom) {
-    isUserScrolling.value = true;
-
-    if (scrollTimeout) {
-      clearTimeout(scrollTimeout);
+// 复制
+async function doCopy() {
+  const selection = terminal?.getSelection();
+  if (selection) {
+    try {
+      await navigator.clipboard.writeText(selection);
+    } catch (e) {
+      console.error('复制失败:', e);
     }
-
-    scrollTimeout = setTimeout(() => {
-      isUserScrolling.value = false;
-    }, 2000);
-  } else {
-    isUserScrolling.value = false;
   }
+  closeContextMenu();
 }
 
-// 处理窗口大小变化
-function handleResize() {
-  if (fitAddon) {
-    fitAddon.fit();
+// 粘贴
+async function doPaste() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) {
+      emit('data', text);
+    }
+  } catch (e) {
+    console.error('粘贴失败:', e);
   }
+  closeContextMenu();
+}
+
+// 全选
+function doSelectAll() {
+  terminal?.selectAll();
+  closeContextMenu();
 }
 
 // 写入数据到终端
 function write(data: string) {
-  if (terminal) {
-    terminal.write(data);
-  }
+  terminal?.write(data);
 }
 
 // 写入一行数据
 function writeln(data: string) {
-  if (terminal) {
-    terminal.writeln(data);
-  }
+  terminal?.writeln(data);
 }
 
 // 清屏
 function clear() {
-  if (terminal) {
-    terminal.clear();
-  }
-}
-
-// 重置终端
-function reset() {
-  if (terminal) {
-    terminal.reset();
-  }
+  terminal?.clear();
 }
 
 // 获取当前尺寸
-function getSize(): { cols: number; rows: number } {
+function getSize() {
   if (terminal) {
-    return {
-      cols: terminal.cols,
-      rows: terminal.rows,
-    };
+    return { cols: terminal.cols, rows: terminal.rows };
   }
   return { cols: 80, rows: 24 };
 }
 
 // 释放资源
 function dispose() {
-  window.removeEventListener('resize', handleResize);
-
-  if (scrollTimeout) {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = null;
+  const xtermEl = terminalContainer.value?.querySelector('.xterm') as HTMLElement;
+  if (xtermEl) {
+    xtermEl.removeEventListener('contextmenu', onContextMenu);
   }
+  document.removeEventListener('click', closeContextMenu);
 
   if (terminal) {
     terminal.dispose();
     terminal = null;
   }
-
   fitAddon = null;
-  isReady.value = false;
 }
 
 // 暴露方法给父组件
@@ -288,11 +201,8 @@ defineExpose({
   write,
   writeln,
   clear,
-  reset,
   getSize,
   dispose,
-  addToHistory,
-  clearHistory,
 });
 </script>
 
@@ -307,15 +217,46 @@ defineExpose({
 
 .terminal-panel :deep(.xterm) {
   padding: 8px;
-  background-color: #000000;
+  height: 100%;
 }
 
 .terminal-panel :deep(.xterm-viewport) {
-  overflow-y: auto !important;
-  background-color: #000000 !important;
+  overflow-y: auto;
 }
 
 .terminal-panel :deep(.xterm-screen) {
-  background-color: #000000;
+  display: block !important;
+}
+</style>
+
+<style>
+/* 右键菜单样式（全局） */
+.context-menu {
+  position: fixed;
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #d4d4d4;
+  transition: background-color 0.15s;
+}
+
+.context-menu-item:hover {
+  background: #409EFF;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: #3c3c3c;
+  margin: 4px 0;
 }
 </style>
