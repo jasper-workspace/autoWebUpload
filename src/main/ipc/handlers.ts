@@ -1,6 +1,9 @@
 import { ipcMain, dialog, BrowserWindow, app, shell, nativeTheme } from 'electron';
 import Store from 'electron-store';
-import fs from 'fs/promises';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
+import https from 'https';
+import http from 'http';
 import { SFTPService } from '../services/sftp';
 import { UpdateService } from '../services/update';
 import { terminalService } from '../services/terminal';
@@ -11,8 +14,92 @@ const store = new Store({ name: 'server-configs' });
 const appStore = new Store({ name: 'app-configs' });
 let sftpService: SFTPService | null = null;
 let isUploading = false;
+let downloadProgressCallback: ((received: number, total: number) => void) | null = null;
+let isDownloadCanceled = false; // 下载取消标志
 const logger = createLogger('IPC');
 const updateService = new UpdateService(app.getVersion());
+
+/**
+ * 下载文件到本地（支持进度报告和取消）
+ * @param url 文件下载URL
+ * @param destPath 保存路径
+ * @param onProgress 进度回调函数 (received: number, total: number) => void
+ */
+function downloadFile(url: string, destPath: string, onProgress?: (received: number, total: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const protocol = url.startsWith('https') ? https : http;
+    const file = fs.createWriteStream(destPath);
+
+    const cleanup = () => {
+      isDownloadCanceled = false;
+    };
+
+    const request = protocol.get(url, (response) => {
+      // 处理重定向
+      if (response.statusCode === 301 || response.statusCode === 302) {
+        const redirectUrl = response.headers.location;
+        if (redirectUrl) {
+          file.close();
+          fsPromises.unlink(destPath).catch(() => { }); // 删除已创建的文件
+          downloadFile(redirectUrl, destPath, onProgress).then(resolve).catch(reject);
+          return;
+        }
+      }
+
+      if (response.statusCode !== 200) {
+        file.close();
+        cleanup();
+        fsPromises.unlink(destPath).catch(() => { }).finally(() => {
+          reject(new Error(`下载失败，HTTP状态码: ${response.statusCode}`));
+        });
+        return;
+      }
+
+      const totalSize = parseInt(response.headers['content-length'] || '0', 10);
+      let downloadedSize = 0;
+
+      // 在 pipe 之前监听 data 事件以便获取进度
+      response.on('data', (chunk: Buffer) => {
+        // 检查是否已取消
+        if (isDownloadCanceled) {
+          response.destroy();
+          file.close();
+          cleanup();
+          fsPromises.unlink(destPath).catch(() => { });
+          reject(new Error('下载已取消'));
+          return;
+        }
+
+        downloadedSize += chunk.length;
+        if (onProgress && totalSize > 0) {
+          onProgress(downloadedSize, totalSize);
+        }
+      });
+
+      response.pipe(file);
+
+      file.on('finish', () => {
+        cleanup();
+        resolve();
+      });
+    });
+
+    request.on('error', (error) => {
+      file.close();
+      cleanup();
+      fsPromises.unlink(destPath).catch(() => { });
+      reject(error);
+    });
+
+    request.setTimeout(300000, () => { // 5分钟超时
+      request.destroy();
+      file.close();
+      cleanup();
+      fsPromises.unlink(destPath).catch(() => { });
+      reject(new Error('下载超时'));
+    });
+  });
+}
 
 // 主题配置类型
 type ThemeMode = 'dark' | 'light' | 'system';
@@ -520,6 +607,70 @@ export function setupIpcHandlers() {
     }
   });
 
+  // 下载更新文件
+  ipcMain.handle('download-update', async (_, downloadUrl: string, version: string) => {
+    try {
+      // 从下载URL提取文件名（需要解码URL编码的中文字符）
+      const urlObj = new URL(downloadUrl);
+      const encodedFileName = urlObj.pathname.split('/').pop() || `autoWebUpload-${version}.exe`;
+      const fileName = decodeURIComponent(encodedFileName);
+
+      // 弹出保存对话框，让用户选择保存位置
+      const result = await dialog.showSaveDialog({
+        title: '保存更新文件',
+        defaultPath: fileName,
+        filters: [
+          { name: '可执行文件', extensions: ['exe'] },
+          { name: '所有文件', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: false, message: '用户取消下载' };
+      }
+
+      const filePath = result.filePath;
+      const win = BrowserWindow.getAllWindows()[0];
+
+      logger.info('开始下载更新文件', { downloadUrl, filePath });
+
+      // 上一次发送进度的时间，用于节流
+      let lastProgressTime = 0;
+
+      // 创建进度回调，通过 IPC 发送到渲染进程
+      const onProgress = (received: number, total: number) => {
+        if (!win) return;
+
+        const now = Date.now();
+        // 节流：每 100ms 更新一次进度
+        if (now - lastProgressTime < 100 && received < total) return;
+        lastProgressTime = now;
+
+        const percentage = Math.round((received / total) * 100);
+        win.webContents.send('download-progress', {
+          received,
+          total,
+          percentage
+        });
+      };
+
+      // 下载文件
+      await downloadFile(downloadUrl, filePath, onProgress);
+
+      logger.info('更新文件下载完成', { filePath });
+      return { success: true, filePath };
+    } catch (error: any) {
+      logger.error('下载更新文件失败', error);
+      return { success: false, error: error.message || '下载失败' };
+    }
+  });
+
+  // 取消下载
+  ipcMain.handle('cancel-download', async () => {
+    isDownloadCanceled = true;
+    return { success: true };
+  });
+
   // 保存不再提示的版本号
   ipcMain.handle('save-ignore-version', async (_, version: string) => {
     try {
@@ -556,7 +707,7 @@ export function setupIpcHandlers() {
       // 直接导出配置（包括密码和私钥）
       const exportData = configs.map(config => ({ ...config }));
 
-      await fs.writeFile(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8');
+      await fsPromises.writeFile(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8');
       logger.info('配置导出成功', { filePath: result.filePath, count: configs.length });
       return { success: true, filePath: result.filePath };
     } catch (error: any) {
@@ -582,7 +733,7 @@ export function setupIpcHandlers() {
       }
 
       const filePath = result.filePaths[0];
-      const content = await fs.readFile(filePath, 'utf-8');
+      const content = await fsPromises.readFile(filePath, 'utf-8');
       const importedConfigs = JSON.parse(content) as ServerConfig[];
 
       if (!Array.isArray(importedConfigs)) {

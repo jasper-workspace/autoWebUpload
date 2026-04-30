@@ -57,6 +57,14 @@ const api = {
   // 更新相关
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   openUpdateUrl: (url: string) => ipcRenderer.invoke('open-update-url', url),
+  downloadUpdate: (downloadUrl: string, version: string) => ipcRenderer.invoke('download-update', downloadUrl, version),
+  onDownloadProgress: (callback: (progress: { received: number; total: number; percentage: number }) => void) => {
+    ipcRenderer.on('download-progress', (_, data) => callback(data));
+  },
+  removeDownloadProgressListener: () => {
+    ipcRenderer.removeAllListeners('download-progress');
+  },
+  cancelDownload: () => ipcRenderer.invoke('cancel-download'),
   saveIgnoreVersion: (version: string) => ipcRenderer.invoke('save-ignore-version', version),
   getUpdateConfig: () => ipcRenderer.invoke('get-update-config'),
   saveUpdateConfig: (config: any) => ipcRenderer.invoke('save-update-config', config),

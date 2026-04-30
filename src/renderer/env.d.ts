@@ -47,6 +47,10 @@ declare global {
       // 更新相关
       checkForUpdates: () => Promise<any>;
       openUpdateUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
+      downloadUpdate: (downloadUrl: string, version: string) => Promise<{ success: boolean; filePath?: string; error?: string; message?: string }>;
+      onDownloadProgress: (callback: (progress: { received: number; total: number; percentage: number }) => void) => void;
+      removeDownloadProgressListener: () => void;
+      cancelDownload: () => Promise<{ success: boolean }>;
       saveIgnoreVersion: (version: string) => Promise<{ success: boolean; error?: string }>;
       getUpdateConfig: () => Promise<any>;
       saveUpdateConfig: (config: any) => Promise<any>;

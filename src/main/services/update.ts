@@ -16,6 +16,16 @@ interface ReleaseInfo {
   html_url: string;
   created_at: string;
   published_at: string;
+  assets: ReleaseAsset[];
+}
+
+// 发行版附件接口
+export interface ReleaseAsset {
+  id: number;
+  name: string;
+  size: number;
+  download_url: string;
+  browser_download_url: string;
 }
 
 // 更新检查结果接口
@@ -127,11 +137,33 @@ export class UpdateService {
   }
 
   /**
-   * 获取版本更新URL
+   * 获取 Windows 安装包的下载链接
    * @param releaseInfo 发布信息
-   * @returns 下载URL
+   * @returns exe文件的下载URL，如果没有则返回null
    */
-  getUpdateUrl(releaseInfo: ReleaseInfo): string {
+  getUpdateUrl(releaseInfo: ReleaseInfo): string | null {
+    if (!releaseInfo.assets || releaseInfo.assets.length === 0) {
+      return null;
+    }
+
+    // 查找 .exe 文件（绿色免安装程序）
+    const exeAsset = releaseInfo.assets.find(asset =>
+      asset.name.endsWith('.exe') || asset.browser_download_url.endsWith('.exe')
+    );
+
+    if (exeAsset) {
+      return exeAsset.browser_download_url || exeAsset.download_url;
+    }
+
+    return null;
+  }
+
+  /**
+   * 获取版本更新URL（兼容方法，返回html_url）
+   * @param releaseInfo 发布信息
+   * @deprecated 使用 getUpdateUrl 代替
+   */
+  getUpdatePageUrl(releaseInfo: ReleaseInfo): string {
     return releaseInfo.html_url;
   }
 }

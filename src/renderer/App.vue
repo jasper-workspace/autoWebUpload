@@ -72,6 +72,15 @@ interface ReleaseInfo {
   html_url: string;
   created_at: string;
   published_at: string;
+  assets: ReleaseAsset[];
+}
+
+interface ReleaseAsset {
+  id: number;
+  name: string;
+  size: number;
+  download_url: string;
+  browser_download_url: string;
 }
 
 interface UpdateInfo {
