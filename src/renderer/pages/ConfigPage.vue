@@ -126,6 +126,16 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">错误重试次数</label>
                 <input v-model.number="form.retryCount" type="number" class="input-field" placeholder="3" />
               </div>
+
+              <!-- 测试连接按钮 -->
+              <div class="pt-2">
+                <button type="button" @click="testConnection" :disabled="testingConnection"
+                  class="btn-primary flex items-center justify-center gap-2 text-sm w-full">
+                  <Wifi v-if="!testingConnection" class="w-4 h-4" />
+                  <div v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  {{ testingConnection ? '测试中...' : '测试连接' }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -448,12 +458,6 @@
           <div class="flex gap-3 pt-4 flex-shrink-0">
             <button type="button" @click="saveConfig" class="btn-primary flex-1 text-sm">
               {{ isEditing ? '更新配置' : '保存配置' }}
-            </button>
-            <button v-if="isEditing" type="button" @click="testConnection" :disabled="testingConnection"
-              class="btn-primary flex items-center justify-center gap-2 text-sm">
-              <Wifi v-if="!testingConnection" class="w-4 h-4" />
-              <div v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              {{ testingConnection ? '测试中...' : '测试连接' }}
             </button>
             <button v-if="isEditing" type="button" @click="resetForm" class="btn-secondary text-sm">
               取消
