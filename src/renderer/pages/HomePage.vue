@@ -58,8 +58,8 @@
           <div
             v-if="canOneClickDeploy"
             class="mb-4">
-            <!-- 后端微服务部署面板（当配置了微服务列表时显示） -->
-            <div v-if="backendArchitecture === 'microservice'" class="backend-deploy-panel">
+            <!-- 后端微服务部署面板（当选择后端+微服务架构时显示） -->
+            <div v-if="deployType === 'backend' && backendArchitecture === 'microservice'" class="backend-deploy-panel">
               <!-- 微服务列表 - 自定义多选下拉 -->
               <div class="mb-3 relative ms-dropdown-container">
                 <label class="block text-xs text-[var(--muted-text)] mb-2">
@@ -128,8 +128,8 @@
               </button>
             </div>
 
-            <!-- 后端单项目一键部署按钮（当没有配置微服务列表时显示） -->
-            <div v-else-if="backendArchitecture === 'single'" class="backend-single-deploy-panel">
+            <!-- 后端单体一键部署按钮（当选择后端+单体架构时显示） -->
+            <div v-else-if="deployType === 'backend' && backendArchitecture === 'single'" class="backend-single-deploy-panel">
               <div class="flex items-center gap-2 mb-3 text-xs text-[var(--muted-text)]">
                 <Package class="w-4 h-4" />
                 <span>单项目部署模式</span>
@@ -508,18 +508,17 @@ const currentDeployConfig = computed(() => {
 
 // 一键部署是否可用（根据架构模式判断）
 const canOneClickDeploy = computed(() => {
-  if (!currentDeployConfig.value) return false;
+  // 必须先选中服务器
+  if (!selectedServer.value) return false;
 
-  // 后端微服务模式（只要有微服务就显示面板）
+  // 后端微服务模式：有微服务列表就显示（即使为空也会显示下拉框）
   if (deployType.value === 'backend' && backendArchitecture.value === 'microservice') {
-    return microservices.value.length > 0;
+    return true;
   }
 
-  // 后端单体模式或前端模式，使用buildConfig方式
-  return (
-    currentDeployConfig.value?.buildConfig?.localPath &&
-    currentDeployConfig.value?.buildConfig?.buildCommand
-  );
+  // 后端单体模式或前端模式：只要选中了服务器就显示按钮
+  // （配置验证在点击时进行）
+  return true;
 });
 
 // 监听微服务下拉展开状态，点击外部时关闭
@@ -539,11 +538,15 @@ watch(msDropdownOpen, (isOpen) => {
 // 监听部署类型切换，重置手动上传选项，再根据一键部署能力控制
 watch(
   deployType,
-  () => {
+  (type) => {
     // 切换时先重置为 false
     showManualUpload.value = false;
+    // 前端模式不使用微服务架构，重置为 single
+    if (type === 'frontend') {
+      backendArchitecture.value = 'single';
+    }
     // 切换到后端时，加载微服务列表
-    if (deployType.value === 'backend') {
+    if (type === 'backend') {
       loadBackendMicroservices();
     }
   },

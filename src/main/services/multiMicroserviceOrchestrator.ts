@@ -6,17 +6,24 @@ import {
   MicroserviceDeployResult,
   MultiMicroserviceDeployResult,
   ServerConfig,
+  BuildConfig,
 } from '../../shared/types';
 import { mavenExecutor } from './mavenExecutor';
 import { SFTPService } from './sftp';
+import { LocalBuildService } from './localBuild';
 
 /**
  * 多微服务部署编排器
- * 协调多个微服务的上传、部署流程（跳过构建阶段）
+ * 协调多个微服务的构建、上传、部署流程
  */
 export class MultiMicroserviceOrchestrator {
   private isCanceled = false;
   private currentMicroserviceId: string | null = null;
+  private localBuildService: LocalBuildService;
+
+  constructor() {
+    this.localBuildService = new LocalBuildService();
+  }
 
   /**
    * 一键部署全部启用的微服务
@@ -131,7 +138,7 @@ export class MultiMicroserviceOrchestrator {
   }
 
   /**
-   * 部署单个微服务（跳过构建阶段，直接上传jar包）
+   * 部署单个微服务
    */
   private async deployOneMicroservice(
     serverConfig: ServerConfig,
@@ -152,6 +159,74 @@ export class MultiMicroserviceOrchestrator {
     };
 
     const startTime = Date.now();
+
+    // ==================== 阶段0: Maven 构建 ====================
+    console.log('[MultiMicroserviceOrchestrator] 开始Maven构建', microservice.name);
+    onProgress({
+      microserviceId: microservice.id,
+      microserviceName: microservice.name,
+      phase: 'building',
+      percentage: 0,
+      output: `开始构建 ${microservice.name}...`,
+      startTime,
+    });
+
+    // 构建命令：mvn clean package -DskipTests
+    const buildConfig: BuildConfig = {
+      type: 'backend',
+      localPath: microservicePath,
+      buildCommand: 'mvn clean package -DskipTests',
+      stopOnBuildFailure: true,
+    };
+
+    // 创建进度监听器，将 BuildProgress 转换为 MicroserviceBuildProgress
+    const buildProgressHandler = (buildProgress: any) => {
+      onProgress({
+        microserviceId: microservice.id,
+        microserviceName: microservice.name,
+        phase: 'building',
+        percentage: buildProgress.percentage || 0,
+        output: buildProgress.step || '',
+        startTime,
+      });
+    };
+    this.localBuildService.on('progress', buildProgressHandler);
+
+    let buildSuccess = false;
+    let buildOutput = '';
+
+    try {
+      const buildResult = await this.localBuildService.executeBuild(buildConfig);
+      buildSuccess = buildResult.success;
+      buildOutput = buildResult.output;
+
+      if (!buildResult.success) {
+        onProgress({
+          microserviceId: microservice.id,
+          microserviceName: microservice.name,
+          phase: 'error',
+          percentage: 0,
+          output: '构建失败',
+          error: buildResult.error,
+          startTime,
+          endTime: Date.now(),
+          duration: Date.now() - startTime,
+        });
+        result.error = `构建失败: ${buildResult.error}`;
+        return result;
+      }
+
+      onProgress({
+        microserviceId: microservice.id,
+        microserviceName: microservice.name,
+        phase: 'building',
+        percentage: 100,
+        output: '构建完成',
+        startTime,
+      });
+    } finally {
+      this.localBuildService.removeListener('progress', buildProgressHandler);
+    }
 
     // ==================== 阶段1: SFTP上传jar包产物 ====================
     console.log('[MultiMicroserviceOrchestrator] 发送 uploading 进度', microservice.name);
