@@ -44,7 +44,7 @@ export interface ServerConfig {
   frontend: DeployTargetConfig;
 
   // ==================== 后端配置 ====================
-  backend: DeployTargetConfig;
+  backend: BackendConfig;
 
   // ==================== 旧的平铺字段（保留用于迁移） ====================
   /** @deprecated 请使用 frontend.remotePath */
@@ -184,4 +184,199 @@ export interface DeployResult {
 
   /** 错误信息 */
   error?: string;
+}
+
+// ==================== 微服务配置类型 ====================
+
+/**
+ * 微服务配置
+ */
+export interface MicroserviceConfig {
+  /** 微服务唯一标识 */
+  id: string;
+
+  /** 微服务名称（显示用） */
+  name: string;
+
+  /** Maven artifactId */
+  artifactId: string;
+
+  /** 微服务本地路径（相对于后端根目录） */
+  localPath: string;
+
+  /** 远程部署路径 */
+  remotePath: string;
+
+  /** 上传后执行的命令（如重启服务、授权等） */
+  postUploadCommand?: string;
+
+  /** 是否启用该微服务 */
+  enabled: boolean;
+
+  /** 排序权重（数字越小越靠前） */
+  order?: number;
+}
+
+/**
+ * Maven命令配置
+ */
+export interface MavenCommandConfig {
+  /** 命令类型 */
+  command: 'clean' | 'compile' | 'package' | 'install' | 'deploy';
+
+  /** 显示名称 */
+  label: string;
+
+  /** 命令说明 */
+  description: string;
+
+  /** 是否跳过测试（默认true） */
+  skipTests?: boolean;
+}
+
+/**
+ * Maven命令常量
+ */
+export const MAVEN_COMMANDS: MavenCommandConfig[] = [
+  {
+    command: 'clean',
+    label: 'clean',
+    description: '清理target目录',
+    skipTests: false,
+  },
+  {
+    command: 'compile',
+    label: 'compile',
+    description: '编译源代码',
+    skipTests: false,
+  },
+  {
+    command: 'package',
+    label: 'package',
+    description: '打包（跳过测试）',
+    skipTests: true,
+  },
+  {
+    command: 'install',
+    label: 'install',
+    description: '安装到本地仓库',
+    skipTests: true,
+  },
+  {
+    command: 'deploy',
+    label: 'deploy',
+    description: '部署到远程仓库',
+    skipTests: true,
+  },
+];
+
+/**
+ * 微服务构建进度
+ */
+export interface MicroserviceBuildProgress {
+  /** 微服务ID */
+  microserviceId: string;
+
+  /** 微服务名称 */
+  microserviceName: string;
+
+  /** 当前执行的命令（Maven命令，可选） */
+  command?: string;
+
+  /** 当前阶段 */
+  phase: 'pending' | 'building' | 'uploading' | 'deploying' | 'completed' | 'error';
+
+  /** 进度百分比 0-100 */
+  percentage: number;
+
+  /** 构建日志输出 */
+  output: string;
+
+  /** 错误信息 */
+  error?: string;
+
+  /** 开始时间戳 */
+  startTime?: number;
+
+  /** 结束时间戳 */
+  endTime?: number;
+
+  /** 耗时（毫秒） */
+  duration?: number;
+}
+
+/**
+ * 单个微服务部署结果
+ */
+export interface MicroserviceDeployResult {
+  /** 微服务ID */
+  microserviceId: string;
+
+  /** 微服务名称 */
+  microserviceName: string;
+
+  /** 是否成功 */
+  success: boolean;
+
+  /** 构建结果 */
+  buildResult?: {
+    success: boolean;
+    duration: number;
+    output: string;
+    error?: string;
+  };
+
+  /** 上传结果 */
+  uploadResult?: {
+    success: boolean;
+    duration: number;
+    uploadedFiles: number;
+    error?: string;
+  };
+
+  /** 部署命令结果 */
+  deployResult?: {
+    success: boolean;
+    output: string;
+    error?: string;
+  };
+
+  /** 错误信息 */
+  error?: string;
+}
+
+/**
+ * 多微服务部署结果
+ */
+export interface MultiMicroserviceDeployResult {
+  /** 是否全部成功 */
+  success: boolean;
+
+  /** 各微服务部署结果 */
+  results: MicroserviceDeployResult[];
+
+  /** 总耗时（毫秒） */
+  totalDuration: number;
+
+  /** 失败数量 */
+  failedCount: number;
+
+  /** 成功数量 */
+  successCount: number;
+
+  /** 错误信息（可选） */
+  error?: string;
+}
+
+/**
+ * 后端配置扩展（支持微服务）
+ * - 如果配置了微服务列表(microservices)，使用微服务部署流程
+ * - 如果没有配置微服务列表，回退到旧的单项目构建流程(buildConfig)
+ */
+export interface BackendConfig extends DeployTargetConfig {
+  /** 微服务列表（如果为空数组，则使用旧的buildConfig方式） */
+  microservices: MicroserviceConfig[];
+
+  /** 后端根目录（微服务项目根目录，用于扫描微服务） */
+  rootPath: string;
 }

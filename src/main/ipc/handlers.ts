@@ -10,8 +10,11 @@ import { UpdateService } from '../services/update';
 import { terminalService } from '../services/terminal';
 import { LocalBuildService } from '../services/localBuild';
 import { DeployOrchestrator } from '../services/deployOrchestrator';
+import { microserviceScanner } from '../services/microserviceScanner';
+import { mavenExecutor } from '../services/mavenExecutor';
+import { multiMicroserviceOrchestrator } from '../services/multiMicroserviceOrchestrator';
 import { createLogger } from '../logger';
-import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig } from '../../shared/types';
+import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig, MicroserviceConfig, MicroserviceBuildProgress } from '../../shared/types';
 
 // 获取 electron-store 的存储路径
 function getStorePath(): string {
@@ -935,6 +938,183 @@ export function setupIpcHandlers() {
       deployOrchestrator.cancelDeploy();
     }
     isDeploying = false;
+    return { success: true };
+  });
+
+  // ==================== 微服务相关handlers ====================
+
+  // 扫描微服务
+  ipcMain.handle('microservice:scan', async (_, rootPath: string) => {
+    try {
+      const microservices = await microserviceScanner.scanMicroservices(rootPath);
+      return { success: true, data: microservices };
+    } catch (error: any) {
+      logger.error('扫描微服务失败', error);
+      return { success: false, error: error.message || '扫描失败' };
+    }
+  });
+
+  // 检测Maven是否安装
+  ipcMain.handle('microservice:check-maven', async () => {
+    try {
+      const installed = await mavenExecutor.checkMavenInstalled();
+      const version = installed ? await mavenExecutor.getMavenVersion() : null;
+      return { success: true, installed, version };
+    } catch (error: any) {
+      return { success: false, installed: false, version: null };
+    }
+  });
+
+  // 获取微服务列表
+  ipcMain.handle('microservice:get-list', async (_, serverId: string) => {
+    try {
+      const configs = store.get('servers', []) as ServerConfig[];
+      logger.info(`[microservice:get-list] 从store读取到 ${configs.length} 个服务器配置`);
+      logger.info(`[microservice:get-list] 查找的serverId: ${serverId}`);
+      if (configs.length > 0) {
+        logger.info(`[microservice:get-list] 第一个配置的id: ${configs[0].id}, name: ${configs[0].name}`);
+      }
+      const config = configs.find((c: ServerConfig) => c.id === serverId);
+      if (!config) {
+        logger.info(`[microservice:get-list] 服务器配置不存在, serverId: ${serverId}`);
+        return { success: false, error: '服务器配置不存在' };
+      }
+      logger.info(`[microservice:get-list] 找到服务器: ${config.name}, backend:`, JSON.stringify(config.backend).substring(0, 200));
+      const microservices = config.backend?.microservices || [];
+      logger.info(`[microservice:get-list] 获取到 ${microservices.length} 个微服务, serverId: ${serverId}`);
+      return { success: true, data: microservices };
+    } catch (error: any) {
+      logger.error('获取微服务列表失败', error);
+      return { success: false, error: error.message || '获取失败' };
+    }
+  });
+
+  // 保存微服务配置
+  ipcMain.handle('microservice:save-config', async (_, serverId: string, config: { microservices: MicroserviceConfig[], rootPath?: string }) => {
+    try {
+      const configs = store.get('servers', []) as ServerConfig[];
+      const index = configs.findIndex((c: ServerConfig) => c.id === serverId);
+      if (index === -1) {
+        return { success: false, error: '服务器配置不存在' };
+      }
+
+      // 更新后端配置的微服务列表和根路径
+      if (!configs[index].backend) {
+        configs[index].backend = {
+          type: 'backend',
+          remotePath: '',
+          microservices: [],
+          rootPath: '',
+        };
+      }
+      configs[index].backend!.microservices = config.microservices;
+      if (config.rootPath !== undefined) {
+        (configs[index].backend as any).rootPath = config.rootPath;
+      }
+
+      store.set('configs', configs);
+      return { success: true };
+    } catch (error: any) {
+      logger.error('保存微服务配置失败', error);
+      return { success: false, error: error.message || '保存失败' };
+    }
+  });
+
+  // 启用/禁用微服务
+  ipcMain.handle('microservice:toggle', async (_, serverId: string, microserviceId: string, enabled: boolean) => {
+    try {
+      const configs = store.get('servers', []) as ServerConfig[];
+      const configIndex = configs.findIndex((c: ServerConfig) => c.id === serverId);
+      if (configIndex === -1) {
+        return { success: false, error: '服务器配置不存在' };
+      }
+
+      const microservices = configs[configIndex].backend?.microservices || [];
+      const msIndex = microservices.findIndex((ms: MicroserviceConfig) => ms.id === microserviceId);
+      if (msIndex === -1) {
+        return { success: false, error: '微服务不存在' };
+      }
+
+      microservices[msIndex].enabled = enabled;
+      configs[configIndex].backend!.microservices = microservices;
+      store.set('configs', configs);
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error('切换微服务状态失败', error);
+      return { success: false, error: error.message || '操作失败' };
+    }
+  });
+
+  // 执行Maven构建（单个微服务）
+  ipcMain.handle('microservice:build', async (_, microservicePath: string, command: string, skipTests: boolean = true) => {
+    try {
+      const result = await mavenExecutor.executeCommand(
+        microservicePath,
+        command as 'clean' | 'compile' | 'package' | 'install' | 'deploy',
+        skipTests,
+        (output) => {
+          // 可以通过webContents发送进度
+        }
+      );
+      return result;
+    } catch (error: any) {
+      logger.error('Maven构建失败', error);
+      return { success: false, output: '', error: error.message || '构建失败' };
+    }
+  });
+
+  // 多微服务一键部署（跳过构建，直接上传jar包）
+  ipcMain.handle('microservice:deploy-all', async (event, serverId: string, selectedIds: string[]) => {
+    console.log('[handlers] microservice:deploy-all 开始', { serverId, selectedIds });
+    try {
+      const configs = store.get('servers', []) as ServerConfig[];
+      const config = configs.find((c: ServerConfig) => c.id === serverId);
+      console.log('[handlers] 找到配置', { configExists: !!config });
+      if (!config) {
+        return { success: false, error: '服务器配置不存在' };
+      }
+
+      // 获取后端根目录
+      const backendRootPath = config.backend?.buildConfig?.localPath;
+      console.log('[handlers] 后端根目录', { backendRootPath });
+      if (!backendRootPath) {
+        return { success: false, error: '后端工作目录未配置' };
+      }
+
+      // 获取webContents用于发送进度
+      const webContents = BrowserWindow.fromWebContents(event.sender);
+      console.log('[handlers] 开始调用 orchestrator.deployAll');
+
+      const result = await multiMicroserviceOrchestrator.deployAll(
+        config,
+        backendRootPath,
+        selectedIds || [],
+        (progress: MicroserviceBuildProgress) => {
+          // 发送进度到渲染进程
+          webContents?.webContents.send('microservice:build-progress', progress);
+        }
+      );
+
+      console.log('[handlers] orchestrator.deployAll 返回', { result });
+      return result;
+    } catch (error: any) {
+      logger.error('微服务部署失败', error);
+      console.log('[handlers] 捕获到异常', { error: error.message });
+      return {
+        success: false,
+        results: [],
+        totalDuration: 0,
+        failedCount: 0,
+        successCount: 0,
+        error: error.message || '部署失败',
+      };
+    }
+  });
+
+  // 取消微服务部署
+  ipcMain.handle('microservice:cancel-deploy', async () => {
+    multiMicroserviceOrchestrator.cancelDeploy();
     return { success: true };
   });
 }

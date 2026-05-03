@@ -149,6 +149,48 @@ const api = {
 
   // 调试用：读取原始配置文件
   readRawConfig: () => ipcRenderer.invoke('read-raw-config'),
+
+  // ==================== 微服务部署相关 ====================
+
+  // 扫描微服务
+  scanMicroservices: (rootPath: string) =>
+    ipcRenderer.invoke('microservice:scan', rootPath),
+
+  // 检测Maven是否安装
+  checkMavenInstalled: () =>
+    ipcRenderer.invoke('microservice:check-maven'),
+
+  // 获取微服务列表
+  getMicroserviceList: (serverId: string) =>
+    ipcRenderer.invoke('microservice:get-list', serverId),
+
+  // 保存微服务配置
+  saveMicroserviceConfig: (serverId: string, config: { microservices: any[], rootPath?: string }) =>
+    ipcRenderer.invoke('microservice:save-config', serverId, config),
+
+  // 启用/禁用微服务
+  toggleMicroservice: (serverId: string, microserviceId: string, enabled: boolean) =>
+    ipcRenderer.invoke('microservice:toggle', serverId, microserviceId, enabled),
+
+  // 执行Maven构建（单个微服务）
+  buildMicroservice: (microservicePath: string, command: string, skipTests?: boolean) =>
+    ipcRenderer.invoke('microservice:build', microservicePath, command, skipTests),
+
+  // 多微服务一键部署（跳过构建，直接上传jar包）
+  deployAllMicroservices: (serverId: string, selectedIds: string[]) =>
+    ipcRenderer.invoke('microservice:deploy-all', serverId, selectedIds),
+
+  // 取消微服务部署
+  cancelMicroserviceDeploy: () =>
+    ipcRenderer.invoke('microservice:cancel-deploy'),
+
+  // 监听微服务构建进度
+  onMicroserviceBuildProgress: (callback: (progress: any) => void) => {
+    ipcRenderer.on('microservice:build-progress', (_, data) => callback(data));
+  },
+  removeMicroserviceBuildProgressListener: () => {
+    ipcRenderer.removeAllListeners('microservice:build-progress');
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

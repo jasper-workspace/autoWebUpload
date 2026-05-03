@@ -83,6 +83,18 @@ declare global {
 
       // 调试用
       readRawConfig: () => Promise<{ path: string; content?: string; error?: string }>;
+
+      // ==================== 微服务部署相关 ====================
+      scanMicroservices: (rootPath: string) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+      checkMavenInstalled: () => Promise<{ success: boolean; installed: boolean; version: string | null }>;
+      getMicroserviceList: (serverId: string) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+      saveMicroserviceConfig: (serverId: string, config: { microservices: any[], rootPath?: string }) => Promise<{ success: boolean; error?: string }>;
+      toggleMicroservice: (serverId: string, microserviceId: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+      buildMicroservice: (microservicePath: string, command: string, skipTests?: boolean) => Promise<{ success: boolean; output: string; error?: string }>;
+      deployAllMicroservices: (serverId: string, selectedIds: string[]) => Promise<{ success: boolean; results?: any[]; totalDuration: number; failedCount: number; successCount: number; error?: string }>;
+      cancelMicroserviceDeploy: () => Promise<{ success: boolean }>;
+      onMicroserviceBuildProgress: (callback: (progress: any) => void) => void;
+      removeMicroserviceBuildProgressListener: () => void;
     };
     isUploading?: () => boolean;
     cancelUpload?: () => void;

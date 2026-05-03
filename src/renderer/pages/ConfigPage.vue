@@ -202,7 +202,35 @@
               <div class="w-4 h-4 rounded bg-gradient-to-br from-purple-400 to-purple-600"></div>
               后端部署配置
             </h3>
-            <div class="space-y-4">
+
+            <!-- 后端架构选择 -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">架构类型</label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    v-model="backendArchitecture"
+                    type="radio"
+                    value="microservice"
+                    class="accent-[#409EFF]" />
+                  <span class="text-[var(--foreground)]">微服务</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    v-model="backendArchitecture"
+                    type="radio"
+                    value="single"
+                    class="accent-[#409EFF]" />
+                  <span class="text-[var(--foreground)]">单体</span>
+                </label>
+              </div>
+              <p class="text-xs text-[var(--muted-text)] mt-1">
+                {{ backendArchitecture === 'microservice' ? '微服务架构：支持多模块微服务分别部署' : '单体架构：使用构建配置打包部署单个后端项目' }}
+              </p>
+            </div>
+
+            <!-- 单体架构配置 -->
+            <div v-if="backendArchitecture === 'single'" class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径</label>
                 <input v-model="form.backend.remotePath" type="text" class="input-field" placeholder="/var/www/backend" />
@@ -261,6 +289,126 @@
                 </div>
               </div>
             </div>
+
+            <!-- 微服务架构配置 -->
+            <div v-if="backendArchitecture === 'microservice'" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">后端根目录</label>
+                <div class="flex gap-2">
+                  <input v-model="backendRootPath" type="text" class="input-field flex-1"
+                    placeholder="微服务项目根目录，用于自动扫描微服务" />
+                  <button type="button" @click="selectBackendRootPath" class="btn-secondary text-sm">
+                    浏览
+                  </button>
+                </div>
+                <p class="text-xs text-[var(--muted-text)] mt-1">
+                  配置微服务项目根目录后，可以自动扫描并管理微服务
+                </p>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  @click="scanMicroservices"
+                  :disabled="!backendRootPath || isScanningMaven"
+                  class="btn-secondary flex items-center gap-2 text-sm"
+                >
+                  <div v-if="isScanningMaven" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  <Search v-else class="w-4 h-4" />
+                  {{ isScanningMaven ? '扫描中...' : '扫描微服务' }}
+                </button>
+                <span v-if="microserviceCount > 0" class="text-sm text-[var(--muted-text)]">
+                  已扫描到 {{ microserviceCount }} 个微服务
+                </span>
+              </div>
+
+              <!-- Maven状态 -->
+              <div v-if="!mavenInstalled" class="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <AlertTriangle class="w-4 h-4 text-yellow-500" />
+                <span class="text-sm text-yellow-500">未检测到Maven，请确保已安装Maven并配置环境变量</span>
+              </div>
+              <div v-else class="text-xs text-[var(--muted-text)]">
+                Maven版本: {{ mavenVersion }}
+              </div>
+
+              <!-- 微服务列表预览 -->
+              <div v-if="scannedMicroservices.length > 0" class="border border-[var(--card-border)] rounded-lg p-3">
+                <div class="flex items-center justify-between mb-3">
+                  <h5 class="text-sm font-medium text-[var(--foreground)]">已扫描的微服务（共 {{ scannedMicroservices.length }} 个）</h5>
+                  <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-1 cursor-pointer text-xs text-[var(--muted-text)] hover:text-[var(--foreground)]">
+                      <input type="checkbox"
+                        :checked="allMicroservicesSelected"
+                        :indeterminate="someMicroservicesSelected"
+                        @change="toggleSelectAllMicroservices"
+                        class="accent-[#409EFF]" />
+                      全选
+                    </label>
+                    <button v-if="someMicroservicesSelected" @click="clearAllMicroservices" class="text-xs text-[#409EFF] hover:text-[#409EFF]/80">
+                      清空
+                    </button>
+                  </div>
+                </div>
+                <div class="space-y-2 max-h-[400px] overflow-y-auto">
+                  <div
+                    v-for="ms in scannedMicroservices"
+                    :key="ms.id"
+                    class="border border-[var(--card-border)] rounded-lg p-2 bg-[var(--card-bg)]"
+                  >
+                    <!-- 微服务头部：名称和启用checkbox -->
+                    <div class="flex items-center gap-2 mb-2">
+                      <input type="checkbox" v-model="ms.enabled" class="accent-[#409EFF]" />
+                      <span class="text-[var(--foreground)] font-medium flex-1 text-sm">{{ ms.name }}</span>
+                      <span class="text-[var(--muted-text)] text-xs">{{ ms.artifactId }}</span>
+                    </div>
+
+                    <!-- 微服务配置表单 -->
+                    <div class="grid grid-cols-1 gap-1.5 pl-6">
+                      <!-- 远程路径 -->
+                      <div class="flex items-center gap-2">
+                        <label class="text-xs text-[var(--muted-text)] w-14 flex-shrink-0">远程路径:</label>
+                        <input
+                          v-model="ms.remotePath"
+                          type="text"
+                          :disabled="!ms.enabled"
+                          class="input-field text-xs flex-1 py-0.5"
+                          placeholder="/opt/app/xxx" />
+                      </div>
+
+                      <!-- 上传后命令 -->
+                      <div class="flex items-center gap-2">
+                        <label class="text-xs text-[var(--muted-text)] w-14 flex-shrink-0">上传命令:</label>
+                        <input
+                          v-model="ms.postUploadCommand"
+                          type="text"
+                          :disabled="!ms.enabled"
+                          class="input-field text-xs flex-1 py-0.5"
+                          placeholder="chmod -R 755 /opt/app/xxx" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 通用：部署后命令和日志命令（微服务模式下也显示） -->
+            <div v-if="backendArchitecture === 'microservice'" class="space-y-4 mt-4 pt-4 border-t border-[var(--card-border)]">
+              <div>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  通用部署后命令 <span class="text-[var(--muted-text)]">(可选)</span>
+                </label>
+                <textarea v-model="form.backend.postUploadCommand" class="input-field h-20 resize-none"
+                  placeholder="所有微服务部署后执行的命令，如服务重启等"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  日志命令 <span class="text-[var(--muted-text)]">(可选)</span>
+                </label>
+                <input v-model="form.backend.logCommand" type="text" class="input-field"
+                  placeholder="tail -f /var/log/server/app.log" />
+              </div>
+            </div>
           </div>
 
           <div class="flex gap-3 pt-4 flex-shrink-0">
@@ -314,10 +462,44 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { Plus, Trash2, Server, Eye, EyeOff, Wifi, Download, Upload, Package } from 'lucide-vue-next';
+import { Plus, Trash2, Server, Eye, EyeOff, Wifi, Download, Upload, Package, Cpu, AlertTriangle, Search } from 'lucide-vue-next';
 import { showSuccess, showError } from '../utils/notification';
-import type { ServerConfig, DeployTargetConfig, BuildConfig, ConnectionTestResult } from '../../shared/types';
+import type { ServerConfig, DeployTargetConfig, BuildConfig, ConnectionTestResult, MicroserviceConfig, BackendConfig } from '../../shared/types';
 import { useServerStore } from '../stores/server';
+import { toSerializableConfig } from '../utils/config';
+
+// 微服务相关状态
+const backendRootPath = ref('');
+const isScanningMaven = ref(false);
+const mavenInstalled = ref(false);
+const mavenVersion = ref<string | null>(null);
+const scannedMicroservices = ref<MicroserviceConfig[]>([]);
+const microserviceCount = computed(() => scannedMicroservices.value.length);
+
+// 全选/取消全选
+const allMicroservicesSelected = computed(() =>
+  scannedMicroservices.value.length > 0 && scannedMicroservices.value.every(ms => ms.enabled)
+);
+
+const someMicroservicesSelected = computed(() =>
+  scannedMicroservices.value.some(ms => ms.enabled) && !allMicroservicesSelected.value
+);
+
+function toggleSelectAllMicroservices() {
+  const allEnabled = allMicroservicesSelected.value;
+  scannedMicroservices.value.forEach(ms => {
+    ms.enabled = !allEnabled;
+  });
+}
+
+function clearAllMicroservices() {
+  scannedMicroservices.value.forEach(ms => {
+    ms.enabled = false;
+  });
+}
+
+// 后端架构选择
+const backendArchitecture = ref<'single' | 'microservice'>('microservice');
 
 // 默认构建配置
 function createDefaultBuildConfig(type: 'frontend' | 'backend'): BuildConfig {
@@ -402,7 +584,9 @@ function migrateConfig(server: any): ServerConfig {
       postUploadCommand: server.backendPostUploadCommand || '',
       logCommand: server.backendLogCommand || '',
       enabled: !!(server.backendPath || server.backendPostUploadCommand || server.buildConfig?.type === 'backend'),
-      buildConfig: server.buildConfig?.type === 'backend' ? server.buildConfig : undefined
+      buildConfig: server.buildConfig?.type === 'backend' ? server.buildConfig : undefined,
+      microservices: (server.backend as any)?.microservices || [],
+      rootPath: (server.backend as any)?.rootPath || '',
     }
   };
 
@@ -456,14 +640,27 @@ async function selectServer(id: string) {
 
     // 加载后端配置
     if (migrated.backend) {
-      form.backend = {
+      const backendConfig: BackendConfig = {
         type: 'backend',
         remotePath: migrated.backend.remotePath || '',
         postUploadCommand: migrated.backend.postUploadCommand || '',
         logCommand: migrated.backend.logCommand || '',
         enabled: migrated.backend.enabled || false,
-        buildConfig: migrated.backend.buildConfig || createDefaultBuildConfig('backend')
+        buildConfig: migrated.backend.buildConfig || createDefaultBuildConfig('backend'),
+        microservices: (migrated.backend as any).microservices || [],
+        rootPath: (migrated.backend as any).rootPath || '',
       };
+      form.backend = backendConfig;
+
+      // 判断后端架构类型
+      const hasMicroservices = (migrated.backend as any).microservices?.length > 0;
+      backendArchitecture.value = hasMicroservices ? 'microservice' : 'single';
+
+      // 如果是微服务架构，加载微服务数据
+      if (hasMicroservices) {
+        backendRootPath.value = (migrated.backend as any).rootPath || '';
+        scannedMicroservices.value = (migrated.backend as any).microservices || [];
+      }
     }
   }
 }
@@ -481,6 +678,9 @@ function resetForm() {
   form.backend = createDefaultDeployTarget('backend');
   authType.value = 'password';
   showPassword.value = false;
+  backendArchitecture.value = 'microservice';
+  backendRootPath.value = '';
+  scannedMicroservices.value = [];
 }
 
 async function saveConfig() {
@@ -491,6 +691,19 @@ async function saveConfig() {
     showError('操作失败', '服务器名称、主机地址和用户名不能为空');
     return;
   }
+
+  // 根据架构类型构建backend配置
+  const backendConfig: BackendConfig = {
+    type: 'backend',
+    remotePath: form.backend.remotePath || '',
+    postUploadCommand: form.backend.postUploadCommand || '',
+    logCommand: form.backend.logCommand || '',
+    enabled: form.backend.enabled || false,
+    buildConfig: form.backend.buildConfig,
+    // 微服务架构专用字段
+    microservices: backendArchitecture.value === 'microservice' ? scannedMicroservices.value : [],
+    rootPath: backendArchitecture.value === 'microservice' ? backendRootPath.value : '',
+  };
 
   // 使用 JSON.parse(JSON.stringify()) 深度克隆，剥离响应式并确保可序列化
   const config = JSON.parse(JSON.stringify({
@@ -503,7 +716,7 @@ async function saveConfig() {
     privateKey: authType.value === 'key' ? form.privateKey : undefined,
     retryCount: form.retryCount || 3,
     frontend: form.frontend,
-    backend: form.backend
+    backend: backendConfig
   }));
 
   try {
@@ -628,8 +841,72 @@ async function selectBuildPath(targetType: 'frontend' | 'backend') {
   }
 }
 
+// 选择后端根目录
+async function selectBackendRootPath() {
+  try {
+    const folderPath = await window.electronAPI.selectFolder();
+    if (folderPath) {
+      backendRootPath.value = folderPath;
+      // 同时更新后端构建配置的项目路径
+      form.backend.buildConfig!.localPath = folderPath;
+    }
+  } catch (error: any) {
+    console.error('选择文件夹失败:', error);
+    showError('选择失败', error.message || '选择文件夹失败');
+  }
+}
+
+// 检测Maven是否安装
+async function checkMavenInstalled() {
+  try {
+    const result = await window.electronAPI.checkMavenInstalled();
+    mavenInstalled.value = result.installed;
+    mavenVersion.value = result.version;
+  } catch {
+    mavenInstalled.value = false;
+  }
+}
+
+// 扫描微服务
+async function scanMicroservices() {
+  if (!backendRootPath.value) {
+    showError('扫描失败', '请先配置后端根目录');
+    return;
+  }
+
+  isScanningMaven.value = true;
+  try {
+    const result = await window.electronAPI.scanMicroservices(backendRootPath.value);
+    if (result.success) {
+      scannedMicroservices.value = result.data || [];
+      if (scannedMicroservices.value.length === 0) {
+        showError('扫描结果', '未在指定目录下找到Maven模块');
+      } else {
+        showSuccess('扫描成功', `找到 ${scannedMicroservices.value.length} 个微服务`);
+
+        // 如果是编辑模式，自动保存微服务配置
+        if (form.id && scannedMicroservices.value.length > 0) {
+          // 保存微服务列表和根路径
+          const backendConfig = {
+            microservices: scannedMicroservices.value,
+            rootPath: backendRootPath.value,
+          };
+          await window.electronAPI.saveMicroserviceConfig(form.id, backendConfig);
+        }
+      }
+    } else {
+      showError('扫描失败', result.error || '扫描微服务失败');
+    }
+  } catch (error: any) {
+    showError('扫描失败', error.message || '扫描微服务失败');
+  } finally {
+    isScanningMaven.value = false;
+  }
+}
+
 onMounted(async () => {
   await loadServers();
+  await checkMavenInstalled();
 });
 </script>
 

@@ -158,11 +158,12 @@ export class LocalBuildService extends EventEmitter {
     }
 
     // 产物目录自动检测
-    let detectedOutputDir = config.outputDir;
+    let detectedOutputDir: string | undefined = config.outputDir || undefined;
     if (!detectedOutputDir) {
       this.reportProgress(config.type, '正在自动检测产物目录...', 0, 'building');
-      detectedOutputDir = await this.detectOutputDir(config.localPath, possibleOutputDirs);
-      if (detectedOutputDir) {
+      const detected = await this.detectOutputDir(config.localPath, possibleOutputDirs);
+      if (detected) {
+        detectedOutputDir = detected;
         this.reportProgress(config.type, `检测到产物目录: ${detectedOutputDir}`, 10, 'building');
       } else {
         return {
@@ -177,8 +178,13 @@ export class LocalBuildService extends EventEmitter {
     this.reportProgress(config.type, '正在启动构建...', 10, 'building');
 
     try {
-      // 合并环境变量
-      const env = { ...process.env, ...config.envVars };
+      // 合并环境变量（过滤掉undefined值）
+      const env: Record<string, string> = {};
+      Object.entries({ ...process.env, ...config.envVars }).forEach(([key, value]) => {
+        if (value !== undefined) {
+          env[key] = value;
+        }
+      });
       const result = await this.runCommand(config.buildCommand, config.localPath, config.type, env);
 
       if (this.isCanceled) {

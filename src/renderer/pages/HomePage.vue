@@ -29,33 +29,145 @@
             </div>
           </div>
 
+          <!-- 后端架构选择（当选择后端时显示） -->
+          <div v-if="deployType === 'backend'" class="mb-4">
+            <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
+              后端架构
+            </h2>
+            <div class="flex gap-3 mt-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  v-model="backendArchitecture"
+                  type="radio"
+                  value="microservice"
+                  class="accent-[#409EFF]" />
+                <span class="text-[var(--foreground)]">微服务</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  v-model="backendArchitecture"
+                  type="radio"
+                  value="single"
+                  class="accent-[#409EFF]" />
+                <span class="text-[var(--foreground)]">单体</span>
+              </label>
+            </div>
+          </div>
+
           <!-- 一键部署按钮 -->
           <div
-            v-if="
-              currentDeployConfig?.buildConfig?.localPath &&
-              currentDeployConfig?.buildConfig?.buildCommand
-            "
+            v-if="canOneClickDeploy"
             class="mb-4">
+            <!-- 后端微服务部署面板（当配置了微服务列表时显示） -->
+            <div v-if="backendArchitecture === 'microservice'" class="backend-deploy-panel">
+              <!-- 微服务列表 - 自定义多选下拉 -->
+              <div class="mb-3 relative ms-dropdown-container">
+                <label class="block text-xs text-[var(--muted-text)] mb-2">
+                  微服务 <span class="text-[10px]">({{ enabledMicroserviceCount }}/{{ enabledMicroservicesList.length }})</span>
+                </label>
+                <div
+                  @click="toggleMsDropdown"
+                  class="input-field text-sm w-full min-h-[38px] flex items-center justify-between cursor-pointer">
+                  <span class="text-[var(--muted-text)]" v-if="enabledMicroserviceCount === 0">请选择微服务...</span>
+                  <span v-else class="truncate">{{ getSelectedMsNames() }}</span>
+                  <svg class="w-4 h-4 text-[var(--muted-text)]" :class="{ 'rotate-180': msDropdownOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                <!-- 下拉选项 -->
+                <div v-if="msDropdownOpen" class="absolute z-50 w-full mt-1 bg-[var(--dialog-bg)] border border-[var(--card-border)] rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <!-- 全选/全不选 -->
+                  <div class="flex items-center justify-between px-3 py-2 border-b border-[var(--card-border)]">
+                    <label class="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        :checked="selectedMicroserviceIds.length === enabledMicroservicesList.length && enabledMicroservicesList.length > 0"
+                        :indeterminate="selectedMicroserviceIds.length > 0 && selectedMicroserviceIds.length < enabledMicroservicesList.length"
+                        @change="toggleSelectAll"
+                        class="accent-[#409EFF]" />
+                      <span>全选</span>
+                    </label>
+                    <button
+                      v-if="selectedMicroserviceIds.length > 0"
+                      @click="clearAllSelection"
+                      class="text-xs text-[#409EFF] hover:text-[#409EFF]/80">
+                      清空
+                    </button>
+                  </div>
+                  <!-- 微服务列表 -->
+                  <label
+                    v-for="ms in enabledMicroservicesList"
+                    :key="ms.id"
+                    class="flex items-center gap-2 px-3 py-2 hover:bg-[var(--card-border)] cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      :checked="selectedMicroserviceIds.includes(ms.id)"
+                      @change="toggleMsSelection(ms.id)"
+                      class="accent-[#409EFF]" />
+                    <span>{{ ms.name }} ({{ ms.artifactId }})</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 微服务统计 -->
+              <div class="flex justify-between items-center text-xs text-[var(--muted-text)] mb-3">
+                <span>已选: {{ enabledMicroserviceCount }} / {{ enabledMicroservicesList.length }}</span>
+                <span>jar包来源: target/ 目录</span>
+              </div>
+
+              <!-- 一键部署全部按钮 -->
+              <button
+                @click="handleDeployAll"
+                :disabled="isDeployingRef || enabledMicroserviceCount === 0"
+                class="btn-oneclick w-full"
+                :class="isDeployingRef ? 'deploying' : ''">
+                <Zap class="w-5 h-5" />
+                <span class="btn-text">
+                  {{ isDeployingRef ? '部署中...' : `一键部署 (${enabledMicroserviceCount})` }}
+                </span>
+              </button>
+            </div>
+
+            <!-- 后端单项目一键部署按钮（当没有配置微服务列表时显示） -->
+            <div v-else-if="backendArchitecture === 'single'" class="backend-single-deploy-panel">
+              <div class="flex items-center gap-2 mb-3 text-xs text-[var(--muted-text)]">
+                <Package class="w-4 h-4" />
+                <span>单项目部署模式</span>
+              </div>
+
+              <!-- 一键部署按钮 -->
+              <button
+                @click="handleOneClickDeploy"
+                :disabled="isDeployingRef || !selectedServer"
+                class="btn-oneclick w-full"
+                :class="isDeployingRef ? 'deploying' : ''">
+                <Zap class="w-5 h-5" />
+                <span class="btn-text">
+                  {{ isDeployingRef ? '部署中' : '一键部署后端' }}
+                </span>
+              </button>
+            </div>
+
+            <!-- 前端一键部署按钮 -->
             <button
+              v-else
               @click="handleOneClickDeploy"
-              :disabled="isDeploying || !selectedServer"
-              class="btn-oneclick"
-              :class="isDeploying ? 'deploying' : ''">
+              :disabled="isDeployingRef || !selectedServer"
+              class="btn-oneclick w-full"
+              :class="isDeployingRef ? 'deploying' : ''">
               <Zap class="w-5 h-5" />
               <span class="btn-text">
                 {{
-                  isDeploying
+                  isDeployingRef
                     ? `${deployType === "frontend" ? "前端" : "后端"}部署中`
                     : `一键部署${deployType === "frontend" ? "前端" : "后端"}`
                 }}
               </span>
-              <span v-if="isDeploying" class="loading-dots">
-                <span></span><span></span><span></span>
-              </span>
             </button>
-            <!-- 取消部署按钮（独立于一键部署区域） -->
+
+            <!-- 取消部署按钮 -->
             <button
-              v-if="isDeploying"
+              v-if="isDeployingRef"
               @click="handleCancelDeploy"
               class="flex items-center justify-center w-full gap-2 mt-4 text-sm btn-danger">
               <X class="w-4 h-4" />
@@ -64,7 +176,7 @@
 
             <!-- 部署进度展示 -->
             <div
-              v-if="isDeploying"
+              v-if="isDeployingRef"
               class="mt-4">
               <h3 class="text-sm font-semibold text-[var(--foreground)] mb-2">
                 <span v-if="deployProgress?.phase === 'completed'">部署完成</span>
@@ -135,6 +247,25 @@
 
           <!-- 手动上传折叠区域 -->
           <div v-show="showManualUpload" class="collapse-section">
+            <!-- 后端微服务模式下：选择要上传的微服务 -->
+            <div v-if="deployType === 'backend' && backendArchitecture === 'microservice'" class="mb-4">
+              <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
+                选择微服务
+              </h2>
+              <select
+                v-model="selectedUploadMicroserviceId"
+                class="input-field w-full"
+                :disabled="uploading">
+                <option value="">-- 选择微服务 --</option>
+                <option
+                  v-for="ms in microservices"
+                  :key="ms.id"
+                  :value="ms.id">
+                  {{ ms.name }} ({{ ms.artifactId }})
+                </option>
+              </select>
+            </div>
+
             <!-- 远程目标路径 -->
             <div class="mb-4">
               <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
@@ -142,10 +273,20 @@
               </h2>
               <input
                 v-model="remotePath"
-                disabled
+                :disabled="true"
                 type="text"
                 class="w-full input-field"
-                placeholder="选择服务器后自动填写" />
+                :placeholder="deployType === 'backend' && backendArchitecture === 'microservice' && !selectedUploadMicroserviceId ? '请先选择微服务' : '选择服务器后自动填写'" />
+            </div>
+
+            <!-- 显示所选微服务的上传后命令 -->
+            <div v-if="deployType === 'backend' && backendArchitecture === 'microservice' && selectedUploadMicroserviceId" class="mb-4">
+              <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
+                上传后命令
+              </h2>
+              <div class="text-xs text-[var(--muted-text)] bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg p-3 min-h-[40px]">
+                {{ getSelectedMsPostCommand() || '（无）' }}
+              </div>
             </div>
 
             <!-- 文件夹选择 -->
@@ -232,21 +373,104 @@ import {
   onActivated,
   watch,
 } from "vue";
-import { Upload, FolderOpen, X, Zap } from "lucide-vue-next";
+import { Upload, FolderOpen, X, Zap, Package } from "lucide-vue-next";
 import { useServerStore } from "../stores/server";
 import { useUploadStore } from "../stores/upload";
 import DropZone from "../components/DropZone.vue";
 import { showWarning, showError } from "../utils/notification";
-import type { UploadProgress } from "../../shared/types";
+import type { UploadProgress, MicroserviceConfig, MicroserviceBuildProgress } from "../../shared/types";
 import { toSerializableConfig } from "../utils/config";
 import { useDeploy } from "../composables/useDeploy";
+import { useMicroservice } from "../composables/useMicroservice";
 import type { BuildProgress } from "../../shared/types";
 
 const serverStore = useServerStore();
 const uploadStore = useUploadStore();
 
 // 一键部署
-const { isDeploying, deployProgress, startDeploy, cancelDeploy } = useDeploy();
+const { isDeploying: deployIsDeploying, deployProgress, startDeploy, cancelDeploy } = useDeploy();
+
+// 微服务部署
+const {
+  microservices,
+  selectedCommand,
+  buildProgressMap,
+  mavenInstalled,
+  mavenVersion,
+  toggleMicroservice,
+  deployAllMicroservices,
+  loadMicroservices,
+  checkMaven,
+  isDeploying: msIsDeploying,
+} = useMicroservice();
+
+// 合并 isDeployingRef（微服务部署或单体部署中任意一个为true就显示部署状态）
+const isDeployingRef = computed(() => deployIsDeploying.value || msIsDeploying.value);
+
+// 后端架构选择
+const backendArchitecture = ref<'single' | 'microservice'>('microservice');
+
+// 手动上传时选择的微服务ID
+const selectedUploadMicroserviceId = ref('');
+
+// 多选微服务列表
+const selectedMicroserviceIds = ref<string[]>([]);
+
+// 微服务下拉是否展开
+const msDropdownOpen = ref(false);
+
+// 启用的微服务列表（仅 enabled: true）
+const enabledMicroservicesList = computed(() => {
+  const list = microservices.value.filter(ms => ms.enabled);
+  console.log('[HomePage] enabledMicroservicesList computed:', list.length, 'microservices:', microservices.value.map(ms => ({ id: ms.id, name: ms.name, enabled: ms.enabled })));
+  return list;
+});
+
+// 启用的微服务数量（基于多选列表）
+const enabledMicroserviceCount = computed(() => {
+  return selectedMicroserviceIds.value.length;
+});
+
+// 切换微服务下拉展开/收起
+function toggleMsDropdown() {
+  msDropdownOpen.value = !msDropdownOpen.value;
+}
+
+// 切换微服务选中状态
+function toggleMsSelection(msId: string) {
+  const index = selectedMicroserviceIds.value.indexOf(msId);
+  if (index === -1) {
+    selectedMicroserviceIds.value.push(msId);
+  } else {
+    selectedMicroserviceIds.value.splice(index, 1);
+  }
+}
+
+// 全选/取消全选
+function toggleSelectAll() {
+  if (selectedMicroserviceIds.value.length === enabledMicroservicesList.value.length) {
+    // 已全选，取消全选
+    selectedMicroserviceIds.value = [];
+  } else {
+    // 未全选，执行全选
+    selectedMicroserviceIds.value = enabledMicroservicesList.value.map(ms => ms.id);
+  }
+}
+
+// 清空所有选择
+function clearAllSelection() {
+  selectedMicroserviceIds.value = [];
+}
+
+// 获取已选微服务的显示名称
+function getSelectedMsNames(): string {
+  if (selectedMicroserviceIds.value.length === 0) return '';
+  const names = selectedMicroserviceIds.value.map(id => {
+    const ms = microservices.value.find(m => m.id === id);
+    return ms ? ms.name : '';
+  }).filter(Boolean);
+  return names.join(', ');
+}
 
 const deployType = computed({
   get: () => uploadStore.deployType,
@@ -282,12 +506,34 @@ const currentDeployConfig = computed(() => {
     : selectedServer.value.backend;
 });
 
-// 一键部署是否可用
+// 一键部署是否可用（根据架构模式判断）
 const canOneClickDeploy = computed(() => {
+  if (!currentDeployConfig.value) return false;
+
+  // 后端微服务模式（只要有微服务就显示面板）
+  if (deployType.value === 'backend' && backendArchitecture.value === 'microservice') {
+    return microservices.value.length > 0;
+  }
+
+  // 后端单体模式或前端模式，使用buildConfig方式
   return (
     currentDeployConfig.value?.buildConfig?.localPath &&
     currentDeployConfig.value?.buildConfig?.buildCommand
   );
+});
+
+// 监听微服务下拉展开状态，点击外部时关闭
+watch(msDropdownOpen, (isOpen) => {
+  if (isOpen) {
+    const closeDropdown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.ms-dropdown-container')) {
+        msDropdownOpen.value = false;
+        document.removeEventListener('click', closeDropdown);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+  }
 });
 
 // 监听部署类型切换，重置手动上传选项，再根据一键部署能力控制
@@ -296,9 +542,31 @@ watch(
   () => {
     // 切换时先重置为 false
     showManualUpload.value = false;
-    // 如果没有一键部署能力，则显示手动上传
-    if (!canOneClickDeploy.value && selectedServer.value) {
-      showManualUpload.value = true;
+    // 切换到后端时，加载微服务列表
+    if (deployType.value === 'backend') {
+      loadBackendMicroservices();
+    }
+  },
+  { immediate: true },
+);
+
+// 监听后端架构切换，当切换到微服务架构时加载微服务列表
+watch(
+  backendArchitecture,
+  (arch) => {
+    if (arch === 'microservice' && selectedServer.value) {
+      loadBackendMicroservices();
+    }
+  },
+  { immediate: true },
+);
+
+// 监听选中的服务器，加载微服务列表
+watch(
+  selectedServer,
+  (server) => {
+    if (server && deployType.value === 'backend' && backendArchitecture.value === 'microservice') {
+      loadBackendMicroservices();
     }
   },
   { immediate: true },
@@ -343,7 +611,7 @@ watch(
     }
 
     // 进行中状态
-    if (!isDeploying.value) return;
+    if (!deployIsDeploying.value) return;
 
     // 构建阶段的输出实时打印（只打印新增的内容）
     if (progress.phase === "building" && progress.output) {
@@ -383,20 +651,99 @@ watch(
   { deep: true }
 );
 
+// 记录上一个已处理的微服务进度（用于防重）
+let lastMicroserviceProgressKeys: Record<string, string> = {};
+
+// 监听微服务部署进度变化，同步到操作日志
+watch(
+  buildProgressMap,
+  (progressMap) => {
+    if (!msIsDeploying.value) return;
+
+    // 遍历所有微服务的进度
+    for (const [msId, progress] of Object.entries(progressMap)) {
+      if (!progress) continue;
+
+      // 防重：检查是否与上次相同
+      const progressKey = `${progress.phase}:${progress.percentage}:${progress.output}`;
+      if (lastMicroserviceProgressKeys[msId] === progressKey) continue;
+      lastMicroserviceProgressKeys[msId] = progressKey;
+
+      // 根据阶段打印日志
+      switch (progress.phase) {
+        case 'pending':
+          addLog(`[${progress.microserviceName}] 等待部署...`);
+          break;
+
+        case 'uploading':
+          if (progress.output && progress.output.includes('开始上传')) {
+            addLog(`[${progress.microserviceName}] ${progress.output}`);
+          } else if (progress.output && progress.output.includes('已上传')) {
+            addLog(`[${progress.microserviceName}] ${progress.output}`);
+          }
+          break;
+
+        case 'deploying':
+          addLog(`[${progress.microserviceName}] ${progress.output}`);
+          break;
+
+        case 'completed':
+          addLog(`[${progress.microserviceName}] 部署完成`, 'success');
+          break;
+
+        case 'error':
+          addLog(`[${progress.microserviceName}] 部署失败: ${progress.error}`, 'error');
+          break;
+
+        case 'building':
+          // 构建阶段（已跳过，但保留日志）
+          if (progress.output) {
+            addLog(`[${progress.microserviceName}] ${progress.output}`);
+          }
+          break;
+      }
+    }
+  },
+  { deep: true }
+);
+
 // 监听服务器变化或部署类型变化，更新远程路径
 watch(
-  [selectedServer, deployType],
-  ([server, type]) => {
-    if (server) {
-      const targetConfig =
-        type === "frontend" ? server.frontend : server.backend;
-      uploadStore.remotePath = targetConfig?.remotePath || "";
-    } else {
+  [selectedServer, deployType, backendArchitecture],
+  ([server, type, arch]) => {
+    // 重置选择的微服务
+    selectedUploadMicroserviceId.value = '';
+
+    if (!server) {
       uploadStore.remotePath = "";
+      return;
     }
+
+    // 微服务模式下，远程路径由用户选择微服务后决定
+    if (type === "backend" && arch === "microservice") {
+      uploadStore.remotePath = "";
+      return;
+    }
+
+    // 前端或后端单体模式
+    const targetConfig = type === "frontend" ? server.frontend : server.backend;
+    uploadStore.remotePath = targetConfig?.remotePath || "";
   },
   { immediate: true },
 );
+
+// 监听选择的微服务变化，更新远程路径（微服务模式下）
+watch(selectedUploadMicroserviceId, (msId) => {
+  if (!msId) {
+    uploadStore.remotePath = "";
+    return;
+  }
+
+  const ms = microservices.value.find(m => m.id === msId);
+  if (ms) {
+    uploadStore.remotePath = ms.remotePath;
+  }
+});
 
 // 添加日志
 function addLog(message: string, type?: string) {
@@ -534,17 +881,20 @@ async function startUpload() {
       return;
     }
 
+    // 获取上传后命令（微服务模式下使用所选微服务的命令，否则使用服务器通用命令）
+    let postUploadCmd = '';
+    if (deployType.value === 'backend' && backendArchitecture.value === 'microservice' && selectedUploadMicroserviceId.value) {
+      const selectedMs = microservices.value.find(ms => ms.id === selectedUploadMicroserviceId.value);
+      postUploadCmd = selectedMs?.postUploadCommand || '';
+    }
+
     // 创建可序列化的配置对象
     const serializableConfig = toSerializableConfig(selectedServer.value);
-    const targetConfig =
-      deployType.value === "frontend"
-        ? selectedServer.value.frontend
-        : selectedServer.value.backend;
     const uploadConfig = JSON.parse(
       JSON.stringify({
         ...serializableConfig,
         remotePath: remotePath.value,
-        postUploadCommand: targetConfig?.postUploadCommand,
+        postUploadCommand: postUploadCmd,
       }),
     );
 
@@ -582,6 +932,13 @@ async function cancelUpload() {
 // 清空日志
 function clearLogs() {
   uploadStore.logs = [];
+}
+
+// 获取所选微服务的上传后命令
+function getSelectedMsPostCommand(): string {
+  if (!selectedUploadMicroserviceId.value) return '';
+  const ms = microservices.value.find(m => m.id === selectedUploadMicroserviceId.value);
+  return ms?.postUploadCommand || '';
 }
 
 // 获取阶段标签
@@ -675,6 +1032,113 @@ function handleCancelDeploy() {
   addLog("部署已取消", "warning");
 }
 
+// ==================== 微服务部署相关方法 ====================
+
+// 切换微服务启用状态
+async function handleToggleMicroservice(microserviceId: string, enabled: boolean) {
+  if (!selectedServer.value) return;
+
+  try {
+    await toggleMicroservice(selectedServer.value.id, microserviceId, enabled);
+  } catch (error) {
+    console.error('切换微服务状态失败:', error);
+  }
+}
+
+// 构建单个微服务
+async function handleBuildOne(ms: MicroserviceConfig) {
+  if (!selectedServer.value) {
+    showWarning("请选择服务器", "请先在顶部选择要部署的目标服务器");
+    return;
+  }
+
+  if (!ms.enabled) {
+    showWarning("微服务未启用", "请先启用该微服务");
+    return;
+  }
+
+  addLog(`开始构建微服务: ${ms.name}...`, "info");
+
+  try {
+    const result = await window.electronAPI.buildMicroservice(
+      ms.localPath,
+      selectedCommand.value,
+      selectedCommand.value !== 'clean' && selectedCommand.value !== 'compile'
+    );
+
+    if (result.success) {
+      addLog(`微服务 ${ms.name} 构建成功`, "success");
+    } else {
+      addLog(`微服务 ${ms.name} 构建失败: ${result.error}`, "error");
+    }
+  } catch (error: any) {
+    addLog(`微服务 ${ms.name} 构建失败: ${error.message}`, "error");
+  }
+}
+
+// 一键部署全部微服务
+async function handleDeployAll() {
+  if (!selectedServer.value) {
+    showWarning("请选择服务器", "请先在顶部选择要部署的目标服务器");
+    return;
+  }
+
+  if (enabledMicroserviceCount.value === 0) {
+    showWarning("没有启用的微服务", "请至少启用一个微服务进行部署");
+    return;
+  }
+
+  // 重置部署阶段状态
+  lastDeployPhase = "";
+  lastBuildOutputLength = 0;
+  lastLoggedStatus = "";
+  lastMicroserviceProgressKeys = {};
+  addLog(`开始一键部署 ${enabledMicroserviceCount.value} 个微服务...`, "info");
+
+  try {
+    const result = await deployAllMicroservices(selectedServer.value.id, [...selectedMicroserviceIds.value]);
+
+    if (result) {
+      if (result.success) {
+        addLog(
+          `一键部署成功！成功: ${result.successCount}，失败: ${result.failedCount}，总耗时: ${(result.totalDuration / 1000).toFixed(2)}秒`,
+          "success"
+        );
+      } else {
+        addLog(
+          `一键部署完成。成功: ${result.successCount}，失败: ${result.failedCount}`,
+          result.failedCount > 0 ? "warning" : "success"
+        );
+      }
+    }
+  } catch (error: any) {
+    addLog(`一键部署失败: ${error.message || "未知错误"}`, "error");
+  }
+}
+
+// 加载微服务列表
+async function loadBackendMicroservices() {
+  console.log('[HomePage] loadBackendMicroservices called, selectedServer:', selectedServer.value?.name, selectedServer.value?.id);
+
+  if (!selectedServer.value) {
+    console.log('[HomePage] selectedServer is null, skip loading microservices');
+    return;
+  }
+
+  try {
+    console.log('[HomePage] calling loadMicroservices with serverId:', selectedServer.value.id);
+    const result = await loadMicroservices(selectedServer.value.id);
+    console.log('[HomePage] loadMicroservices returned, result:', result, 'microservices.value:', microservices.value);
+
+    // 默认不选中任何微服务
+    selectedMicroserviceIds.value = [];
+
+    await checkMaven();
+  } catch (error) {
+    console.error('[HomePage] 加载微服务列表失败:', error);
+  }
+}
+
 // 暴露方法给外部使用
 defineExpose({
   isUploading: () => uploadStore.uploading,
@@ -711,7 +1175,12 @@ onUnmounted(() => {
 });
 
 // 页面激活时检查并刷新配置
-onActivated(() => {
-  serverStore.refreshIfNeeded();
+onActivated(async () => {
+  // 刷新配置
+  await serverStore.refreshIfNeeded();
+  // 刷新后重新加载微服务列表（确保从配置文件读取最新数据）
+  if (deployType.value === 'backend' && backendArchitecture.value === 'microservice') {
+    loadBackendMicroservices();
+  }
 });
 </script>

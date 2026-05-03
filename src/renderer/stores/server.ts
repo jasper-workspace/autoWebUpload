@@ -51,14 +51,16 @@ function migrateConfig(server: any): ServerConfig {
     };
   }
 
-  // 创建一个完整的后端配置
-  const backendConfig: DeployTargetConfig = {
+  // 创建一个完整的后端配置（使用any以支持微服务扩展）
+  const backendConfig: any = {
     type: 'backend',
     remotePath: '',
     postUploadCommand: '',
     logCommand: '',
     enabled: false,
     buildConfig: undefined,
+    microservices: [],
+    rootPath: '',
     ...(server.backend || {})  // 合并已有数据
   };
 
