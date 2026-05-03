@@ -16,21 +16,32 @@ export class MavenExecutor {
    * @param command Maven命令类型
    * @param skipTests 是否跳过测试
    * @param onProgress 进度回调函数
+   * @param mavenPath 自定义Maven路径（可选，留空使用系统PATH中的mvn）
+   * @param javaPath 自定义Java路径（可选，留空使用系统默认Java）
    * @returns 执行结果
    */
   async executeCommand(
     microservicePath: string,
     command: 'clean' | 'compile' | 'package' | 'install' | 'deploy',
     skipTests: boolean = true,
-    onProgress?: (output: string) => void
+    onProgress?: (output: string) => void,
+    mavenPath?: string,
+    javaPath?: string
   ): Promise<{ success: boolean; output: string; error?: string }> {
     this.isCanceled = false;
     let output = '';
 
     // 构建Maven命令
-    let mavenCmd = `mvn ${command}`;
+    const mvnCmdName = mavenPath ? `${mavenPath}\\bin\\mvn.cmd` : 'mvn';
+    let mavenCmd = `${mvnCmdName} ${command}`;
     if (skipTests && (command === 'package' || command === 'install' || command === 'deploy')) {
       mavenCmd += ' -DskipTests';
+    }
+
+    // 构建PowerShell命令
+    let psCommand = `cd '${microservicePath}'; ${mavenCmd}`;
+    if (javaPath) {
+      psCommand = `$env:JAVA_HOME='${javaPath}'; $env:PATH=\"${javaPath}\\bin;$env:PATH\"; ${psCommand}`;
     }
 
     return new Promise((resolve) => {
@@ -40,7 +51,7 @@ export class MavenExecutor {
         [
           '-NoProfile',
           '-Command',
-          `cd '${microservicePath}'; ${mavenCmd}`,
+          psCommand,
         ],
         {
           shell: false,
@@ -111,11 +122,13 @@ export class MavenExecutor {
 
   /**
    * 检测Maven是否安装
+   * @param mavenPath 自定义Maven路径（可选，留空使用系统PATH中的mvn）
    */
-  async checkMavenInstalled(): Promise<boolean> {
+  async checkMavenInstalled(mavenPath?: string): Promise<boolean> {
     try {
       const { execSync } = require('child_process');
-      execSync('mvn --version', { stdio: 'pipe' });
+      const mvnCmd = mavenPath ? `${mavenPath}\\bin\\mvn.cmd` : 'mvn';
+      execSync(`${mvnCmd} --version`, { stdio: 'pipe' });
       return true;
     } catch {
       return false;
@@ -124,11 +137,13 @@ export class MavenExecutor {
 
   /**
    * 获取Maven版本
+   * @param mavenPath 自定义Maven路径（可选，留空使用系统PATH中的mvn）
    */
-  async getMavenVersion(): Promise<string | null> {
+  async getMavenVersion(mavenPath?: string): Promise<string | null> {
     try {
       const { execSync } = require('child_process');
-      const output = execSync('mvn --version', { encoding: 'utf-8' });
+      const mvnCmd = mavenPath ? `${mavenPath}\\bin\\mvn.cmd` : 'mvn';
+      const output = execSync(`${mvnCmd} --version`, { encoding: 'utf-8' });
       const match = output.match(/Apache Maven (\d+\.\d+\.\d+)/);
       return match ? match[1] : null;
     } catch {

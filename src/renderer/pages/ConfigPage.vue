@@ -292,6 +292,40 @@
 
             <!-- 微服务架构配置 -->
             <div v-if="backendArchitecture === 'microservice'" class="space-y-4">
+              <!-- Maven 路径配置 -->
+              <div>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  Maven 路径 <span class="text-[var(--muted-text)]">(可选，留空使用系统默认)</span>
+                </label>
+                <div class="flex gap-2">
+                  <input v-model="mavenPath" type="text" class="input-field flex-1"
+                    placeholder="例如: D:\apache-maven-3.9.9" />
+                  <button type="button" @click="selectMavenPath" class="btn-secondary text-sm">
+                    浏览
+                  </button>
+                </div>
+                <p class="text-xs text-[var(--muted-text)] mt-1">
+                  指定 Maven 安装目录，包含 bin 文件夹的父目录
+                </p>
+              </div>
+
+              <!-- Java 路径配置 -->
+              <div>
+                <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                  Java 路径 <span class="text-[var(--muted-text)]">(可选，留空使用系统默认)</span>
+                </label>
+                <div class="flex gap-2">
+                  <input v-model="javaPath" type="text" class="input-field flex-1"
+                    placeholder="例如: D:\jdk-17" />
+                  <button type="button" @click="selectJavaPath" class="btn-secondary text-sm">
+                    浏览
+                  </button>
+                </div>
+                <p class="text-xs text-[var(--muted-text)] mt-1">
+                  指定 Java JDK 安装目录，用于 Maven 构建
+                </p>
+              </div>
+
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">后端根目录</label>
                 <div class="flex gap-2">
@@ -475,6 +509,8 @@ const mavenInstalled = ref(false);
 const mavenVersion = ref<string | null>(null);
 const scannedMicroservices = ref<MicroserviceConfig[]>([]);
 const microserviceCount = computed(() => scannedMicroservices.value.length);
+const mavenPath = ref('');
+const javaPath = ref('');
 
 // 全选/取消全选
 const allMicroservicesSelected = computed(() =>
@@ -660,6 +696,8 @@ async function selectServer(id: string) {
       if (hasMicroservices) {
         backendRootPath.value = (migrated.backend as any).rootPath || '';
         scannedMicroservices.value = (migrated.backend as any).microservices || [];
+        mavenPath.value = (migrated.backend as any).mavenPath || '';
+        javaPath.value = (migrated.backend as any).javaPath || '';
       }
     }
   }
@@ -681,6 +719,8 @@ function resetForm() {
   backendArchitecture.value = 'microservice';
   backendRootPath.value = '';
   scannedMicroservices.value = [];
+  mavenPath.value = '';
+  javaPath.value = '';
 }
 
 async function saveConfig() {
@@ -703,6 +743,8 @@ async function saveConfig() {
     // 微服务架构专用字段
     microservices: backendArchitecture.value === 'microservice' ? scannedMicroservices.value : [],
     rootPath: backendArchitecture.value === 'microservice' ? backendRootPath.value : '',
+    mavenPath: backendArchitecture.value === 'microservice' ? mavenPath.value : undefined,
+    javaPath: backendArchitecture.value === 'microservice' ? javaPath.value : undefined,
   };
 
   // 使用 JSON.parse(JSON.stringify()) 深度克隆，剥离响应式并确保可序列化
@@ -856,10 +898,38 @@ async function selectBackendRootPath() {
   }
 }
 
+// 选择 Maven 路径
+async function selectMavenPath() {
+  try {
+    const folderPath = await window.electronAPI.selectFolder();
+    if (folderPath) {
+      mavenPath.value = folderPath;
+      // 选择后自动重新检测 Maven
+      await checkMavenInstalled();
+    }
+  } catch (error: any) {
+    console.error('选择文件夹失败:', error);
+    showError('选择失败', error.message || '选择文件夹失败');
+  }
+}
+
+// 选择 Java 路径
+async function selectJavaPath() {
+  try {
+    const folderPath = await window.electronAPI.selectFolder();
+    if (folderPath) {
+      javaPath.value = folderPath;
+    }
+  } catch (error: any) {
+    console.error('选择文件夹失败:', error);
+    showError('选择失败', error.message || '选择文件夹失败');
+  }
+}
+
 // 检测Maven是否安装
 async function checkMavenInstalled() {
   try {
-    const result = await window.electronAPI.checkMavenInstalled();
+    const result = await window.electronAPI.checkMavenInstalled(mavenPath.value || undefined);
     mavenInstalled.value = result.installed;
     mavenVersion.value = result.version;
   } catch {

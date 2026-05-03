@@ -379,4 +379,10 @@ export interface BackendConfig extends DeployTargetConfig {
 
   /** 后端根目录（微服务项目根目录，用于扫描微服务） */
   rootPath: string;
+
+  /** 自定义 Maven 路径（可选，留空则使用系统 PATH 中的 mvn） */
+  mavenPath?: string;
+
+  /** 自定义 Java 路径（可选，留空则使用系统默认 Java） */
+  javaPath?: string;
 }

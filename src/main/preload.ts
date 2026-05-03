@@ -157,8 +157,8 @@ const api = {
     ipcRenderer.invoke('microservice:scan', rootPath),
 
   // 检测Maven是否安装
-  checkMavenInstalled: () =>
-    ipcRenderer.invoke('microservice:check-maven'),
+  checkMavenInstalled: (mavenPath?: string) =>
+    ipcRenderer.invoke('microservice:check-maven', mavenPath),
 
   // 获取微服务列表
   getMicroserviceList: (serverId: string) =>
@@ -173,8 +173,8 @@ const api = {
     ipcRenderer.invoke('microservice:toggle', serverId, microserviceId, enabled),
 
   // 执行Maven构建（单个微服务）
-  buildMicroservice: (microservicePath: string, command: string, skipTests?: boolean) =>
-    ipcRenderer.invoke('microservice:build', microservicePath, command, skipTests),
+  buildMicroservice: (microservicePath: string, command: string, skipTests?: boolean, mavenPath?: string, javaPath?: string) =>
+    ipcRenderer.invoke('microservice:build', microservicePath, command, skipTests, mavenPath, javaPath),
 
   // 多微服务一键部署（跳过构建，直接上传jar包）
   deployAllMicroservices: (serverId: string, selectedIds: string[]) =>

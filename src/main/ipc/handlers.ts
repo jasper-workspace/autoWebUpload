@@ -955,10 +955,10 @@ export function setupIpcHandlers() {
   });
 
   // 检测Maven是否安装
-  ipcMain.handle('microservice:check-maven', async () => {
+  ipcMain.handle('microservice:check-maven', async (_, mavenPath?: string) => {
     try {
-      const installed = await mavenExecutor.checkMavenInstalled();
-      const version = installed ? await mavenExecutor.getMavenVersion() : null;
+      const installed = await mavenExecutor.checkMavenInstalled(mavenPath);
+      const version = installed ? await mavenExecutor.getMavenVersion(mavenPath) : null;
       return { success: true, installed, version };
     } catch (error: any) {
       return { success: false, installed: false, version: null };
@@ -1047,7 +1047,7 @@ export function setupIpcHandlers() {
   });
 
   // 执行Maven构建（单个微服务）
-  ipcMain.handle('microservice:build', async (_, microservicePath: string, command: string, skipTests: boolean = true) => {
+  ipcMain.handle('microservice:build', async (_, microservicePath: string, command: string, skipTests: boolean = true, mavenPath?: string, javaPath?: string) => {
     try {
       const result = await mavenExecutor.executeCommand(
         microservicePath,
@@ -1055,7 +1055,9 @@ export function setupIpcHandlers() {
         skipTests,
         (output) => {
           // 可以通过webContents发送进度
-        }
+        },
+        mavenPath,
+        javaPath
       );
       return result;
     } catch (error: any) {
