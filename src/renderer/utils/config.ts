@@ -1,4 +1,12 @@
-import type { ServerConfig } from '../../shared/types';
+import type { ServerConfig, DeployTargetConfig } from '../../shared/types';
+
+/**
+ * 将 DeployTargetConfig 对象转换为可序列化的纯对象
+ */
+function toSerializableDeployTarget(target: DeployTargetConfig | undefined): DeployTargetConfig | undefined {
+  if (!target) return undefined;
+  return JSON.parse(JSON.stringify(target));
+}
 
 /**
  * 将 ServerConfig 对象转换为可序列化的纯对象
@@ -14,14 +22,8 @@ export function toSerializableConfig(config: ServerConfig): ServerConfig {
     username: config.username,
     password: config.password,
     privateKey: config.privateKey,
-    frontendPath: config.frontendPath,
-    backendPath: config.backendPath,
-    remotePath: config.remotePath,
-    postUploadCommand: config.postUploadCommand,
     retryCount: config.retryCount,
-    frontendLogCommand: config.frontendLogCommand,
-    backendLogCommand: config.backendLogCommand,
-    frontendPostUploadCommand: config.frontendPostUploadCommand,
-    backendPostUploadCommand: config.backendPostUploadCommand
+    frontend: config.frontend ? toSerializableDeployTarget(config.frontend) : undefined,
+    backend: config.backend ? toSerializableDeployTarget(config.backend) : undefined
   }));
 }

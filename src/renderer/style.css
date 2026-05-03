@@ -18,6 +18,10 @@
     --btn-secondary-hover: #4C4C4C;
     --btn-danger: #F56C6C;
     --btn-danger-hover: #D64A4A;
+    --btn-oneclick-start: #667eea;
+    --btn-oneclick-end: #764ba2;
+    --btn-oneclick-start-hover: #7c8ff5;
+    --btn-oneclick-end-hover: #8a5cb8;
     --scrollbar-track: #1E1E1E;
     --scrollbar-thumb: #3C3C3C;
     --scrollbar-thumb-hover: #4C4C4C;
@@ -44,6 +48,10 @@
     --btn-secondary-hover: #E4E7ED;
     --btn-danger: #F56C6C;
     --btn-danger-hover: #D64A4A;
+    --btn-oneclick-start: #667eea;
+    --btn-oneclick-end: #764ba2;
+    --btn-oneclick-start-hover: #7c8ff5;
+    --btn-oneclick-end-hover: #8a5cb8;
     --scrollbar-track: #F5F5F5;
     --scrollbar-thumb: #C0C4CC;
     --scrollbar-thumb-hover: #A6A9AD;
@@ -214,5 +222,72 @@
     background: var(--card-bg);
     border: 1px solid var(--card-border);
     color: var(--foreground);
+  }
+
+  /* 一键部署按钮 - 渐变风格 */
+  .btn-oneclick {
+    @apply flex items-center justify-center gap-2 w-full font-medium px-6 py-3 rounded-lg
+           transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed
+           shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+    background: linear-gradient(135deg, var(--btn-oneclick-start, #667eea) 0%, var(--btn-oneclick-end, #764ba2) 100%);
+    color: white;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-oneclick:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--btn-oneclick-start-hover, #7c8ff5) 0%, var(--btn-oneclick-end-hover, #8a5cb8) 100%);
+  }
+
+  .btn-oneclick.deploying {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .btn-oneclick .btn-text {
+    @apply relative;
+  }
+
+  .btn-oneclick .loading-dots {
+    @apply flex gap-1 ml-1;
+  }
+
+  .btn-oneclick .loading-dots span {
+    @apply w-1.5 h-1.5 rounded-full;
+    background: rgba(255, 255, 255, 0.8);
+    animation: bounce-dot 1.4s ease-in-out infinite;
+  }
+
+  .btn-oneclick .loading-dots span:nth-child(1) { animation-delay: 0s; }
+  .btn-oneclick .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .btn-oneclick .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.4); }
+    50% { box-shadow: 0 0 30px rgba(118, 75, 162, 0.6); }
+  }
+
+  @keyframes bounce-dot {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+    40% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* 折叠区域样式 */
+  .collapse-section {
+    @apply p-4 rounded-lg mt-3;
+    background: var(--input-bg);
+    border: 1px dashed var(--card-border);
+    animation: slide-down 0.3s ease-out;
+  }
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

@@ -22,4 +22,11 @@ export default {
     },
   },
   plugins: [],
+  // safelist 确保动态类名不会被 purge
+  safelist: [
+    'text-green-400',
+    'text-red-400',
+    'text-yellow-400',
+    'text-blue-400',
+  ],
 }

@@ -4,11 +4,21 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import https from 'https';
 import http from 'http';
+import path from 'path';
 import { SFTPService } from '../services/sftp';
 import { UpdateService } from '../services/update';
 import { terminalService } from '../services/terminal';
+import { LocalBuildService } from '../services/localBuild';
+import { DeployOrchestrator } from '../services/deployOrchestrator';
 import { createLogger } from '../logger';
-import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions } from '../../shared/types';
+import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig } from '../../shared/types';
+
+// 获取 electron-store 的存储路径
+function getStorePath(): string {
+  // electron-store 8.x 使用 electron-store 的 getPath 方法
+  const store = new Store({ name: 'server-configs' });
+  return (store as any).path || '';
+}
 
 const store = new Store({ name: 'server-configs' });
 const appStore = new Store({ name: 'app-configs' });
@@ -18,6 +28,11 @@ let downloadProgressCallback: ((received: number, total: number) => void) | null
 let isDownloadCanceled = false; // 下载取消标志
 const logger = createLogger('IPC');
 const updateService = new UpdateService(app.getVersion());
+
+// 一键部署相关服务
+let localBuildService: LocalBuildService | null = null;
+let deployOrchestrator: DeployOrchestrator | null = null;
+let isDeploying = false;
 
 /**
  * 下载文件到本地（支持进度报告和取消）
@@ -230,7 +245,30 @@ export function setupIpcHandlers() {
   // 获取所有配置
   ipcMain.handle('get-configs', () => {
     logger.debug('获取所有配置');
-    return store.get('servers', []);
+    const configs = store.get('servers', []) as ServerConfig[];
+    logger.info('读取配置数据:', JSON.stringify(configs, null, 2));
+
+    // 调试：打印配置数量和内容
+    console.log('=== 配置数据调试 ===');
+    console.log('配置数量:', configs.length);
+    configs.forEach((config, index) => {
+      console.log(`配置 ${index + 1}:`, JSON.stringify(config, null, 2));
+    });
+    console.log('====================');
+
+    return configs;
+  });
+
+  // 调试用：读取原始配置文件
+  ipcMain.handle('read-raw-config', () => {
+    const storePath = (store as any).path;
+    logger.info('配置文件路径:', storePath);
+    try {
+      const rawData = fs.readFileSync(storePath, 'utf-8');
+      return { path: storePath, content: rawData };
+    } catch (error: any) {
+      return { path: storePath, error: error.message };
+    }
   });
 
   // 保存配置
@@ -239,6 +277,8 @@ export function setupIpcHandlers() {
     if (!config || !config.id) {
       throw new Error('无效的配置对象');
     }
+
+    logger.info('保存配置数据:', JSON.stringify(config, null, 2));
 
     const servers = store.get('servers', []) as ServerConfig[];
     const index = servers.findIndex(s => s.id === config.id);
@@ -787,5 +827,114 @@ export function setupIpcHandlers() {
       logger.error('导入配置失败', error);
       return { success: false, error: error.message || '导入失败' };
     }
+  });
+
+  // ==================== 一键部署相关处理器 ====================
+
+  // 初始化部署服务
+  function initDeployServices() {
+    if (!localBuildService) {
+      localBuildService = new LocalBuildService();
+    }
+    if (!deployOrchestrator) {
+      deployOrchestrator = new DeployOrchestrator();
+    }
+    // 始终设置 mainWindow 和 localBuildService
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      deployOrchestrator.setMainWindow(win);
+    }
+    deployOrchestrator.setLocalBuildService(localBuildService);
+  }
+
+  // 执行本地构建
+  ipcMain.handle('local-build:execute', async (_, config: BuildConfig) => {
+    initDeployServices();
+    const win = BrowserWindow.getAllWindows()[0];
+
+    try {
+      // 监听构建进度
+      localBuildService!.on('progress', (progress) => {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('local-build:progress', progress);
+        }
+      });
+
+      const result = await localBuildService!.executeBuild(config);
+      return result;
+    } catch (error: any) {
+      logger.error('本地构建失败', error);
+      return { success: false, output: '', error: error.message || '构建失败', duration: 0 };
+    }
+  });
+
+  // 取消本地构建
+  ipcMain.handle('local-build:cancel', async () => {
+    if (localBuildService) {
+      localBuildService.cancelBuild();
+    }
+    return { success: true };
+  });
+
+  // 执行一键部署
+  ipcMain.handle('deploy:one-click', async (_, serverId: string, deployType: 'frontend' | 'backend') => {
+    if (isDeploying) {
+      throw new Error('已有部署任务正在进行');
+    }
+
+    initDeployServices();
+    isDeploying = true;
+    const win = BrowserWindow.getAllWindows()[0];
+
+    try {
+      // 获取服务器配置
+      const servers = store.get('servers', []) as ServerConfig[];
+      const config = servers.find(s => s.id === serverId);
+
+      if (!config) {
+        throw new Error('服务器配置未找到');
+      }
+
+      // 根据部署类型选择对应的构建配置
+      const deployConfig = deployType === 'frontend' ? config.frontend : config.backend;
+      const buildConfig = deployConfig?.buildConfig;
+
+      if (!buildConfig || !buildConfig.localPath || !buildConfig.buildCommand) {
+        throw new Error(`请先配置${deployType === 'frontend' ? '前端' : '后端'}构建命令`);
+      }
+
+      // 确保构建类型匹配
+      if (buildConfig.type !== deployType) {
+        throw new Error(`构建配置类型(${buildConfig.type})与部署类型(${deployType})不匹配`);
+      }
+
+      // 监听构建进度，转发给 deployOrchestrator 统一处理
+      localBuildService!.on('progress', (progress) => {
+        if (win && !win.isDestroyed()) {
+          deployOrchestrator!.reportProgress(progress.phase, progress.step, progress.percentage, progress.status, progress.output);
+        }
+      });
+
+      const result = await deployOrchestrator!.executeOneClickDeploy(config, buildConfig);
+      return result;
+    } catch (error: any) {
+      logger.error('一键部署失败', error);
+      return {
+        success: false,
+        totalDuration: 0,
+        error: error.message || '部署失败'
+      };
+    } finally {
+      isDeploying = false;
+    }
+  });
+
+  // 取消部署
+  ipcMain.handle('deploy:cancel', async () => {
+    if (deployOrchestrator) {
+      deployOrchestrator.cancelDeploy();
+    }
+    isDeploying = false;
+    return { success: true };
   });
 }

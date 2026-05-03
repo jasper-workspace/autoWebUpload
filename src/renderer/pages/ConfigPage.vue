@@ -45,9 +45,6 @@
             <div class="flex flex-col gap-1 text-xs text-[var(--muted-text)]">
               <div>服务器: {{ server.host }}:{{ server.port }}</div>
               <div>用户: {{ server.username }}</div>
-              <div class="truncate" :title="server.frontendPath || server.remotePath">前端路径: {{ server.frontendPath ||
-                server.remotePath }}</div>
-              <div class="truncate" :title="server.backendPath">后端路径: {{ server.backendPath }}</div>
             </div>
           </div>
 
@@ -125,7 +122,6 @@
                 <input v-model="form.privateKey" type="text" class="input-field" placeholder="/path/to/private/key" />
               </div>
 
-
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">错误重试次数</label>
                 <input v-model.number="form.retryCount" type="number" class="input-field" placeholder="3" />
@@ -135,24 +131,21 @@
 
           <!-- 2. 前端配置 -->
           <div class="section">
-            <h3 class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
+            <h3 class="text-md font-semibold mb-4 flex items-center gap-2">
               <div class="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-blue-600"></div>
-              前端配置
+              前端部署配置
             </h3>
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径</label>
-                <input v-model="form.frontendPath" type="text" class="input-field" placeholder="/var/www/html" />
-                <p class="text-xs text-[var(--muted-text)] mt-1">
-                  用于部署前端静态文件，例如: /var/www/html
-                </p>
+                <input v-model="form.frontend.remotePath" type="text" class="input-field" placeholder="/var/www/html" />
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <textarea v-model="form.frontendPostUploadCommand" class="input-field h-20 resize-none"
+                <textarea v-model="form.frontend.postUploadCommand" class="input-field h-20 resize-none"
                   placeholder="chmod -R 755 /var/www/html"></textarea>
               </div>
 
@@ -160,35 +153,66 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   日志命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <input v-model="form.frontendLogCommand" type="text" class="input-field"
+                <input v-model="form.frontend.logCommand" type="text" class="input-field"
                   placeholder="tail -f /var/log/nginx/error.log" />
-                <p class="text-xs text-[var(--muted-text)] mt-1">
-                  用于查看前端nginx日志，例如: tail -f /var/log/nginx/error.log
-                </p>
+              </div>
+
+              <!-- 前端构建配置 -->
+              <div class="border-t border-[var(--card-border)] pt-4 mt-4">
+                <h4 class="text-sm font-medium text-[var(--foreground)] mb-3 flex items-center gap-2">
+                  <Package class="w-4 h-4" />
+                  前端构建配置
+                </h4>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">项目路径</label>
+                    <div class="flex gap-2">
+                      <input v-model="form.frontend.buildConfig!.localPath" type="text" class="input-field flex-1"
+                        placeholder="例如: D:\projects\my-vue-app" />
+                      <button type="button" @click="selectBuildPath('frontend')" class="btn-secondary text-sm">
+                        浏览
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">打包命令</label>
+                    <input v-model="form.frontend.buildConfig!.buildCommand" type="text" class="input-field"
+                      placeholder="例如: npm run build" />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">产物目录</label>
+                    <input v-model="form.frontend.buildConfig!.outputDir" type="text" class="input-field"
+                      placeholder="例如: dist (留空则自动检测)" />
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <input v-model="form.frontend.buildConfig!.stopOnBuildFailure" type="checkbox" class="accent-[#409EFF]" />
+                    <span class="text-sm text-[var(--foreground)]">构建失败时停止部署</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 3. 后端配置 -->
           <div class="section">
-            <h3 class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
+            <h3 class="text-md font-semibold mb-4 flex items-center gap-2">
               <div class="w-4 h-4 rounded bg-gradient-to-br from-purple-400 to-purple-600"></div>
-              后端配置
+              后端部署配置
             </h3>
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径</label>
-                <input v-model="form.backendPath" type="text" class="input-field" placeholder="/var/www/backend" />
-                <p class="text-xs text-[var(--muted-text)] mt-1">
-                  用于部署后端服务代码，例如: /var/www/backend
-                </p>
+                <input v-model="form.backend.remotePath" type="text" class="input-field" placeholder="/var/www/backend" />
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <textarea v-model="form.backendPostUploadCommand" class="input-field h-20 resize-none"
+                <textarea v-model="form.backend.postUploadCommand" class="input-field h-20 resize-none"
                   placeholder="npm install && pm2 restart app"></textarea>
               </div>
 
@@ -196,11 +220,45 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   日志命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <input v-model="form.backendLogCommand" type="text" class="input-field"
+                <input v-model="form.backend.logCommand" type="text" class="input-field"
                   placeholder="tail -f /var/log/server/app.log" />
-                <p class="text-xs text-[var(--muted-text)] mt-1">
-                  用于查看后端服务日志，例如: tail -f /var/log/server/app.log
-                </p>
+              </div>
+
+              <!-- 后端构建配置 -->
+              <div class="border-t border-[var(--card-border)] pt-4 mt-4">
+                <h4 class="text-sm font-medium text-[var(--foreground)] mb-3 flex items-center gap-2">
+                  <Package class="w-4 h-4" />
+                  后端构建配置
+                </h4>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">项目路径</label>
+                    <div class="flex gap-2">
+                      <input v-model="form.backend.buildConfig!.localPath" type="text" class="input-field flex-1"
+                        placeholder="例如: D:\projects\my-backend" />
+                      <button type="button" @click="selectBuildPath('backend')" class="btn-secondary text-sm">
+                        浏览
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">打包命令</label>
+                    <input v-model="form.backend.buildConfig!.buildCommand" type="text" class="input-field"
+                      placeholder="例如: mvn clean package" />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">产物目录</label>
+                    <input v-model="form.backend.buildConfig!.outputDir" type="text" class="input-field"
+                      placeholder="例如: target (留空则自动检测)" />
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <input v-model="form.backend.buildConfig!.stopOnBuildFailure" type="checkbox" class="accent-[#409EFF]" />
+                    <span class="text-sm text-[var(--foreground)]">构建失败时停止部署</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -256,12 +314,34 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { Plus, Trash2, Server, Eye, EyeOff, Wifi, Download, Upload } from 'lucide-vue-next';
+import { Plus, Trash2, Server, Eye, EyeOff, Wifi, Download, Upload, Package } from 'lucide-vue-next';
 import { showSuccess, showError } from '../utils/notification';
-import type { ServerConfig } from '../../shared/types';
-import type { ConnectionTestResult } from '../../shared/types';
-import { toSerializableConfig } from '../utils/config';
+import type { ServerConfig, DeployTargetConfig, BuildConfig, ConnectionTestResult } from '../../shared/types';
 import { useServerStore } from '../stores/server';
+
+// 默认构建配置
+function createDefaultBuildConfig(type: 'frontend' | 'backend'): BuildConfig {
+  return {
+    type,
+    localPath: '',
+    buildCommand: '',
+    envVars: {},
+    outputDir: '',
+    stopOnBuildFailure: true
+  };
+}
+
+// 默认部署目标配置
+function createDefaultDeployTarget(type: 'frontend' | 'backend'): DeployTargetConfig {
+  return {
+    type,
+    remotePath: '',
+    postUploadCommand: '',
+    logCommand: '',
+    enabled: false,
+    buildConfig: createDefaultBuildConfig(type)
+  };
+}
 
 const serverStore = useServerStore();
 
@@ -276,7 +356,6 @@ const showPassword = ref(false);
 const testingConnection = ref(false);
 const connectionResult = ref<ConnectionTestResult | null>(null);
 
-
 const form = reactive({
   id: '',
   name: '',
@@ -285,17 +364,50 @@ const form = reactive({
   username: '',
   password: '',
   privateKey: '',
-  frontendPath: '',
-  backendPath: '',
-  frontendLogCommand: '',
-  backendLogCommand: '',
-  frontendPostUploadCommand: '',
-  backendPostUploadCommand: '',
   retryCount: 3,
-  postUploadCommand: ''
+  frontend: createDefaultDeployTarget('frontend'),
+  backend: createDefaultDeployTarget('backend')
 });
 
 const isEditing = computed(() => !!form.id);
+
+// 迁移旧配置到新结构
+function migrateConfig(server: any): ServerConfig {
+  // 如果已经是新结构（包含 frontend 和 backend），直接返回
+  if (server.frontend && server.backend) {
+    return server as ServerConfig;
+  }
+
+  // 否则进行迁移
+  const migrated: ServerConfig = {
+    id: server.id,
+    name: server.name || '',
+    host: server.host || '',
+    port: server.port || 22,
+    username: server.username || '',
+    password: server.password,
+    privateKey: server.privateKey,
+    retryCount: server.retryCount || 3,
+    frontend: {
+      type: 'frontend',
+      remotePath: server.frontendPath || server.remotePath || '',
+      postUploadCommand: server.frontendPostUploadCommand || server.postUploadCommand || '',
+      logCommand: server.frontendLogCommand || '',
+      enabled: !!(server.frontendPath || server.remotePath || server.frontendPostUploadCommand || server.buildConfig),
+      buildConfig: server.buildConfig?.type === 'frontend' ? server.buildConfig : undefined
+    },
+    backend: {
+      type: 'backend',
+      remotePath: server.backendPath || '',
+      postUploadCommand: server.backendPostUploadCommand || '',
+      logCommand: server.backendLogCommand || '',
+      enabled: !!(server.backendPath || server.backendPostUploadCommand || server.buildConfig?.type === 'backend'),
+      buildConfig: server.buildConfig?.type === 'backend' ? server.buildConfig : undefined
+    }
+  };
+
+  return migrated;
+}
 
 async function loadServers() {
   try {
@@ -315,23 +427,44 @@ function addNewServer() {
 async function selectServer(id: string) {
   serverStore.setSelectedServerId(id);
   const server = servers.value.find(s => s.id === id);
+
   if (server) {
-    form.id = server.id;
-    form.name = server.name || '';
-    form.host = server.host || '';
-    form.port = server.port || 22;
-    form.username = server.username || '';
-    form.password = server.password || '';
-    form.privateKey = server.privateKey || '';
-    form.frontendPath = server.frontendPath || server.remotePath || '';
-    form.backendPath = server.backendPath || '';
-    form.frontendLogCommand = server.frontendLogCommand || '';
-    form.backendLogCommand = server.backendLogCommand || '';
-    form.frontendPostUploadCommand = server.frontendPostUploadCommand || server.postUploadCommand || '';
-    form.backendPostUploadCommand = server.backendPostUploadCommand || '';
-    form.retryCount = server.retryCount || 3;
-    form.postUploadCommand = server.postUploadCommand || '';
-    authType.value = server.password ? 'password' : 'key';
+    // 迁移旧配置到新结构
+    const migrated = migrateConfig(server);
+
+    form.id = migrated.id;
+    form.name = migrated.name || '';
+    form.host = migrated.host || '';
+    form.port = migrated.port || 22;
+    form.username = migrated.username || '';
+    form.password = migrated.password || '';
+    form.privateKey = migrated.privateKey || '';
+    form.retryCount = migrated.retryCount || 3;
+    authType.value = migrated.password ? 'password' : 'key';
+
+    // 加载前端配置
+    if (migrated.frontend) {
+      form.frontend = {
+        type: 'frontend',
+        remotePath: migrated.frontend.remotePath || '',
+        postUploadCommand: migrated.frontend.postUploadCommand || '',
+        logCommand: migrated.frontend.logCommand || '',
+        enabled: migrated.frontend.enabled || false,
+        buildConfig: migrated.frontend.buildConfig || createDefaultBuildConfig('frontend')
+      };
+    }
+
+    // 加载后端配置
+    if (migrated.backend) {
+      form.backend = {
+        type: 'backend',
+        remotePath: migrated.backend.remotePath || '',
+        postUploadCommand: migrated.backend.postUploadCommand || '',
+        logCommand: migrated.backend.logCommand || '',
+        enabled: migrated.backend.enabled || false,
+        buildConfig: migrated.backend.buildConfig || createDefaultBuildConfig('backend')
+      };
+    }
   }
 }
 
@@ -343,14 +476,9 @@ function resetForm() {
   form.username = '';
   form.password = '';
   form.privateKey = '';
-  form.frontendPath = '';
-  form.backendPath = '';
-  form.frontendLogCommand = '';
-  form.backendLogCommand = '';
-  form.frontendPostUploadCommand = '';
-  form.backendPostUploadCommand = '';
   form.retryCount = 3;
-  form.postUploadCommand = '';
+  form.frontend = createDefaultDeployTarget('frontend');
+  form.backend = createDefaultDeployTarget('backend');
   authType.value = 'password';
   showPassword.value = false;
 }
@@ -364,7 +492,8 @@ async function saveConfig() {
     return;
   }
 
-  const config: ServerConfig = {
+  // 使用 JSON.parse(JSON.stringify()) 深度克隆，剥离响应式并确保可序列化
+  const config = JSON.parse(JSON.stringify({
     id: form.id || Date.now().toString(),
     name: form.name.trim() || '未命名服务器',
     host: form.host.trim() || '',
@@ -372,20 +501,14 @@ async function saveConfig() {
     username: form.username.trim() || '',
     password: authType.value === 'password' ? form.password : undefined,
     privateKey: authType.value === 'key' ? form.privateKey : undefined,
-    frontendPath: form.frontendPath.trim() || '',
-    backendPath: form.backendPath.trim() || '',
-    remotePath: form.frontendPath.trim() || '', // 保持向后兼容
-    frontendLogCommand: form.frontendLogCommand || undefined,
-    backendLogCommand: form.backendLogCommand || undefined,
-    frontendPostUploadCommand: form.frontendPostUploadCommand || undefined,
-    backendPostUploadCommand: form.backendPostUploadCommand || undefined,
     retryCount: form.retryCount || 3,
-    postUploadCommand: form.postUploadCommand || undefined
-  };
+    frontend: form.frontend,
+    backend: form.backend
+  }));
 
   try {
     console.log('准备保存配置:', config);
-    await serverStore.saveConfig(config);
+    await serverStore.saveConfig(config as ServerConfig);
     console.log('配置保存成功');
 
     // 重新加载服务器列表，确保数据是最新的
@@ -427,7 +550,7 @@ async function testConnection() {
   testingConnection.value = true;
 
   try {
-    const configToTest: Partial<ServerConfig> = {
+    const configToTest = {
       id: form.id,
       name: form.name,
       host: form.host,
@@ -437,7 +560,6 @@ async function testConnection() {
       privateKey: authType.value === 'key' ? form.privateKey : undefined
     };
 
-    // 确保对象是可序列化的
     const serializableConfig = toSerializableConfig(configToTest as any);
     const result = await window.electronAPI.testConnection(serializableConfig);
     connectionResult.value = result;
@@ -489,7 +611,22 @@ async function importConfigs() {
   }
 }
 
-
+// 选择构建项目路径
+async function selectBuildPath(targetType: 'frontend' | 'backend') {
+  try {
+    const folderPath = await window.electronAPI.selectFolder();
+    if (folderPath) {
+      if (targetType === 'frontend') {
+        form.frontend.buildConfig!.localPath = folderPath;
+      } else {
+        form.backend.buildConfig!.localPath = folderPath;
+      }
+    }
+  } catch (error: any) {
+    console.error('选择文件夹失败:', error);
+    showError('选择失败', error.message || '选择文件夹失败');
+  }
+}
 
 onMounted(async () => {
   await loadServers();

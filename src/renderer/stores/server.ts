@@ -1,6 +1,135 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
-import type { ServerConfig } from '../../shared/types';
+import type { ServerConfig, DeployTargetConfig, BuildConfig } from '../../shared/types';
+
+// 创建默认构建配置
+function createDefaultBuildConfig(type: 'frontend' | 'backend'): BuildConfig {
+  return {
+    type,
+    localPath: '',
+    buildCommand: '',
+    envVars: {},
+    outputDir: '',
+    stopOnBuildFailure: true
+  };
+}
+
+// 创建默认部署目标配置
+function createDefaultDeployTarget(type: 'frontend' | 'backend'): DeployTargetConfig {
+  return {
+    type,
+    remotePath: '',
+    postUploadCommand: '',
+    logCommand: '',
+    enabled: false,
+    buildConfig: createDefaultBuildConfig(type)
+  };
+}
+
+// 迁移旧配置到新结构
+function migrateConfig(server: any): ServerConfig {
+  // 创建一个完整的前端配置
+  const frontendConfig: DeployTargetConfig = {
+    type: 'frontend',
+    remotePath: '',
+    postUploadCommand: '',
+    logCommand: '',
+    enabled: false,
+    buildConfig: undefined,
+    ...(server.frontend || {})  // 合并已有数据
+  };
+
+  // 如果没有 buildConfig，创建一个默认的
+  if (!frontendConfig.buildConfig) {
+    frontendConfig.buildConfig = {
+      type: 'frontend',
+      localPath: '',
+      buildCommand: '',
+      envVars: {},
+      outputDir: '',
+      stopOnBuildFailure: true
+    };
+  }
+
+  // 创建一个完整的后端配置
+  const backendConfig: DeployTargetConfig = {
+    type: 'backend',
+    remotePath: '',
+    postUploadCommand: '',
+    logCommand: '',
+    enabled: false,
+    buildConfig: undefined,
+    ...(server.backend || {})  // 合并已有数据
+  };
+
+  // 如果没有 buildConfig，创建一个默认的
+  if (!backendConfig.buildConfig) {
+    backendConfig.buildConfig = {
+      type: 'backend',
+      localPath: '',
+      buildCommand: '',
+      envVars: {},
+      outputDir: '',
+      stopOnBuildFailure: true
+    };
+  }
+
+  // 合并旧字段到新结构（如果存在）
+  if (!frontendConfig.remotePath) {
+    frontendConfig.remotePath = server.frontendPath || server.remotePath || '';
+  }
+  if (!frontendConfig.postUploadCommand) {
+    frontendConfig.postUploadCommand = server.frontendPostUploadCommand || server.postUploadCommand || '';
+  }
+  if (!frontendConfig.logCommand) {
+    frontendConfig.logCommand = server.frontendLogCommand || '';
+  }
+  if (!frontendConfig.enabled) {
+    frontendConfig.enabled = !!(server.frontendPath || server.remotePath || server.frontendPostUploadCommand || server.buildConfig);
+  }
+  // 如果 buildConfig 没有 type，设置它
+  if (frontendConfig.buildConfig && !frontendConfig.buildConfig.type) {
+    frontendConfig.buildConfig.type = 'frontend';
+  }
+
+  if (!backendConfig.remotePath) {
+    backendConfig.remotePath = server.backendPath || '';
+  }
+  if (!backendConfig.postUploadCommand) {
+    backendConfig.postUploadCommand = server.backendPostUploadCommand || '';
+  }
+  if (!backendConfig.logCommand) {
+    backendConfig.logCommand = server.backendLogCommand || '';
+  }
+  if (!backendConfig.enabled) {
+    backendConfig.enabled = !!(server.backendPath || server.backendPostUploadCommand || server.buildConfig?.type === 'backend');
+  }
+  // 如果 buildConfig 没有 type，设置它
+  if (backendConfig.buildConfig && !backendConfig.buildConfig.type) {
+    backendConfig.buildConfig.type = 'backend';
+  }
+
+  // 构建最终配置
+  const migrated: ServerConfig = {
+    id: server.id,
+    name: server.name || '',
+    host: server.host || '',
+    port: server.port || 22,
+    username: server.username || '',
+    password: server.password,
+    privateKey: server.privateKey,
+    retryCount: server.retryCount || 3,
+    frontend: frontendConfig,
+    backend: backendConfig
+  };
+
+  return migrated;
+}
+
+// 迁移服务器列表
+function migrateServers(servers: any[]): ServerConfig[] {
+  return servers.map(server => migrateConfig(server));
+}
 
 export const useServerStore = defineStore('server', () => {
   // 服务器列表
@@ -20,7 +149,8 @@ export const useServerStore = defineStore('server', () => {
   // 加载服务器列表
   async function loadServers() {
     try {
-      servers.value = await window.electronAPI.getConfigs();
+      const rawConfigs = await window.electronAPI.getConfigs();
+      servers.value = migrateServers(rawConfigs);
       lastUpdateTime.value = Date.now();
       console.log('服务器配置已更新，时间戳:', lastUpdateTime.value);
     } catch (error) {
@@ -32,7 +162,7 @@ export const useServerStore = defineStore('server', () => {
   async function saveConfig(config: ServerConfig) {
     try {
       const updatedServers = await window.electronAPI.saveConfig(config);
-      servers.value = updatedServers;
+      servers.value = migrateServers(updatedServers);
       lastUpdateTime.value = Date.now();
       console.log('配置已保存并更新缓存，时间戳:', lastUpdateTime.value);
       return updatedServers;
@@ -48,17 +178,17 @@ export const useServerStore = defineStore('server', () => {
     if (lastUpdateTime.value === 0) {
       return loadServers();
     }
-    
+
     // 获取最新配置时间戳（通过获取配置数量来判断是否有更新）
     try {
       const latestConfigs = await window.electronAPI.getConfigs();
       if (latestConfigs.length !== servers.value.length) {
         console.log('检测到配置数量变化，刷新缓存');
-        servers.value = latestConfigs;
+        servers.value = migrateServers(latestConfigs);
         lastUpdateTime.value = Date.now();
         return;
       }
-      
+
       // 检查每个配置的最后修改时间（如果API支持）
       // 这里简化处理，实际可以通过比较配置内容来判断
       const hasChanges = latestConfigs.some((config, index) => {
@@ -66,10 +196,10 @@ export const useServerStore = defineStore('server', () => {
         if (!currentConfig) return true;
         return JSON.stringify(config) !== JSON.stringify(currentConfig);
       });
-      
+
       if (hasChanges) {
         console.log('检测到配置内容变化，刷新缓存');
-        servers.value = latestConfigs;
+        servers.value = migrateServers(latestConfigs);
         lastUpdateTime.value = Date.now();
       }
     } catch (error) {

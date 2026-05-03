@@ -40,7 +40,23 @@ export const useUploadStore = defineStore('upload', () => {
       .getMinutes()
       .toString()
       .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
-    logs.value.push({ time, message, type });
+
+    // 如果没有指定 type，根据 message 内容自动识别
+    let autoType = type;
+    if (!autoType) {
+      const lowerMsg = message.toLowerCase();
+      if (lowerMsg.includes('error') || lowerMsg.includes('failed') || lowerMsg.includes('fail to')) {
+        autoType = 'error';
+      } else if (lowerMsg.includes('warn')) {
+        autoType = 'warning';
+      } else if (message.includes('✓') || lowerMsg.includes('success') || lowerMsg.includes('complete')) {
+        autoType = 'success';
+      } else {
+        autoType = 'info';
+      }
+    }
+
+    logs.value.push({ time, message, type: autoType });
     
     // 限制日志数量为500条，超过时删除顶部的日志
     if (logs.value.length > 500) {

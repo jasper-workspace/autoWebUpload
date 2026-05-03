@@ -114,6 +114,41 @@ const api = {
     ipcRenderer.removeAllListeners('terminal:close');
     ipcRenderer.removeAllListeners('terminal:error');
   },
+
+  // ==================== 一键部署相关 ====================
+
+  // 执行本地构建
+  executeBuild: (config: any) =>
+    ipcRenderer.invoke('local-build:execute', config),
+
+  // 取消构建
+  cancelBuild: () => ipcRenderer.invoke('local-build:cancel'),
+
+  // 监听构建进度
+  onBuildProgress: (callback: (progress: any) => void) => {
+    ipcRenderer.on('local-build:progress', (_, data) => callback(data));
+  },
+  removeBuildProgressListener: () => {
+    ipcRenderer.removeAllListeners('local-build:progress');
+  },
+
+  // 执行一键部署
+  executeOneClickDeploy: (serverId: string, deployType: 'frontend' | 'backend') =>
+    ipcRenderer.invoke('deploy:one-click', serverId, deployType),
+
+  // 取消部署
+  cancelDeploy: () => ipcRenderer.invoke('deploy:cancel'),
+
+  // 监听部署进度 (包含构建+上传+部署)
+  onDeployProgress: (callback: (progress: any) => void) => {
+    ipcRenderer.on('deploy:progress', (_, data) => callback(data));
+  },
+  removeDeployProgressListener: () => {
+    ipcRenderer.removeAllListeners('deploy:progress');
+  },
+
+  // 调试用：读取原始配置文件
+  readRawConfig: () => ipcRenderer.invoke('read-raw-config'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

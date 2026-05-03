@@ -70,6 +70,19 @@ declare global {
       onTerminalClose: (callback: () => void) => void;
       onTerminalError: (callback: (error: string) => void) => void;
       removeTerminalListeners: () => void;
+
+      // ==================== 一键部署相关 ====================
+      executeBuild: (config: any) => Promise<{ success: boolean; output: string; error?: string; duration: number }>;
+      cancelBuild: () => Promise<{ success: boolean }>;
+      onBuildProgress: (callback: (progress: any) => void) => void;
+      removeBuildProgressListener: () => void;
+      executeOneClickDeploy: (serverId: string, deployType: 'frontend' | 'backend') => Promise<{ success: boolean; totalDuration: number; error?: string }>;
+      cancelDeploy: () => Promise<{ success: boolean }>;
+      onDeployProgress: (callback: (progress: any) => void) => void;
+      removeDeployProgressListener: () => void;
+
+      // 调试用
+      readRawConfig: () => Promise<{ path: string; content?: string; error?: string }>;
     };
     isUploading?: () => boolean;
     cancelUpload?: () => void;
