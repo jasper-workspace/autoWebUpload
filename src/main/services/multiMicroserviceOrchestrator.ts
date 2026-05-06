@@ -11,6 +11,22 @@ import { mavenExecutor } from './mavenExecutor';
 import { SFTPService } from './sftp';
 
 /**
+ * 辅助函数：按换行符截取日志，保证行的完整性
+ * @param output 原始日志输出
+ * @param maxLines 最大行数
+ * @returns 截取后的日志
+ */
+function trimLogOutput(output: string, maxLines: number): string {
+  if (!output) return output;
+  const lines = output.split('\n').filter(l => l.trim());
+  if (lines.length <= maxLines) {
+    return lines.join('\n');
+  }
+  // 保留最后 maxLines 行
+  return lines.slice(-maxLines).join('\n');
+}
+
+/**
  * 多微服务部署编排器
  * 协调多个微服务的构建、上传、部署流程
  */
@@ -175,13 +191,14 @@ export class MultiMicroserviceOrchestrator {
         'package', // Maven命令类型
         true, // skipTests
         (output) => {
-          // 进度回调
+          // 进度回调 - 按换行符截取保证行的完整性
+          const trimmedOutput = trimLogOutput(output, 100);
           onProgress({
             microserviceId: microservice.id,
             microserviceName: microservice.name,
             phase: 'building',
             percentage: 50, // 模拟进度
-            output: output.slice(-500), // 只显示最后500字符
+            output: trimmedOutput,
             startTime,
           });
         },

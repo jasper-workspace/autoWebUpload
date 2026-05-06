@@ -86,44 +86,64 @@ export class MavenExecutor {
       const process = this.currentProcess;
       console.log('[MavenExecutor] Maven进程已启动, PID:', this.currentProcess.pid);
 
-      // 节流后的输出累积器
-      let pendingOutput = '';
+      // 输出缓冲区，用于累积不完整的行尾
+      let buffer = '';
+
+      // 发送单行日志的辅助函数
+      const sendLine = (line: string) => {
+        if (line) {
+          onProgress?.(line + '\n');
+        }
+      };
+
+      // 处理累积的文本，按换行符分割并逐行发送
+      const flushBuffer = () => {
+        if (!this.isCanceled) {
+          const now = Date.now();
+          if (now - this.lastReportTime >= this.REPORT_THROTTLE_MS) {
+            if (buffer) {
+              const lines = buffer.split('\n');
+              // 保留最后一行（可能不完整）
+              for (let i = 0; i < lines.length - 1; i++) {
+                sendLine(lines[i]);
+              }
+              buffer = lines[lines.length - 1];
+            }
+            this.lastReportTime = now;
+          }
+        }
+      };
 
       process.stdout?.on('data', (data: Buffer) => {
         const text = data.toString();
         output += text;
-        pendingOutput += text;
+        buffer += text;
 
-        // 节流：避免日志刷屏
-        if (!this.isCanceled) {
-          const now = Date.now();
-          if (now - this.lastReportTime >= this.REPORT_THROTTLE_MS) {
-            onProgress?.(pendingOutput);
-            pendingOutput = '';
-            this.lastReportTime = now;
-          }
-        }
+        // 达到节流时间则发送
+        flushBuffer();
       });
 
       process.stderr?.on('data', (data: Buffer) => {
         const text = data.toString();
         // Maven的错误输出有时候会写到stderr，这是正常的
         output += text;
-        pendingOutput += text;
+        buffer += text;
 
-        // 节流：避免日志刷屏
-        if (!this.isCanceled) {
-          const now = Date.now();
-          if (now - this.lastReportTime >= this.REPORT_THROTTLE_MS) {
-            onProgress?.(pendingOutput);
-            pendingOutput = '';
-            this.lastReportTime = now;
-          }
-        }
+        // 达到节流时间则发送
+        flushBuffer();
       });
 
       process.on('close', (code: number | null) => {
         this.currentProcess = null;
+
+        // 发送剩余的所有完整行
+        if (buffer) {
+          const lines = buffer.split('\n');
+          for (const line of lines) {
+            sendLine(line);
+          }
+          buffer = '';
+        }
 
         if (this.isCanceled) {
           resolve({
