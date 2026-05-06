@@ -169,6 +169,16 @@ export class MultiMicroserviceOrchestrator {
 
     const startTime = Date.now();
 
+    // 构建Maven命令（用于显示）
+    const mvnCmdName = 'mvn';
+    let mavenCmd = `${mvnCmdName} package -DskipTests`;
+    if (backendRootPath) {
+      const relativePomPath = path.relative(backendRootPath, microservicePath);
+      const modulePath = relativePomPath.replace(/[/\\]pom\.xml$/, '');
+      mavenCmd += ` -pl ${modulePath} -am`;
+    }
+    const mvnDisplayCmd = `cd ${backendRootPath || microservicePath} && ${mavenCmd}`;
+
     // ==================== 阶段0: Maven 构建 ====================
     console.log('[MultiMicroserviceOrchestrator] 开始Maven构建', microservice.name);
     onProgress({
@@ -176,7 +186,7 @@ export class MultiMicroserviceOrchestrator {
       microserviceName: microservice.name,
       phase: 'building',
       percentage: 0,
-      output: `开始构建 ${microservice.name}...`,
+      output: `[命令] ${mvnDisplayCmd}`,
       startTime,
     });
 
@@ -257,7 +267,7 @@ export class MultiMicroserviceOrchestrator {
       microserviceName: microservice.name,
       phase: 'uploading',
       percentage: 10,
-      output: '开始上传jar包...',
+      output: `[命令] SFTP上传 jar包到 ${microservice.remotePath}`,
       startTime,
     });
 
@@ -356,26 +366,25 @@ export class MultiMicroserviceOrchestrator {
     }
 
     // ==================== 阶段2: 执行部署后命令 ====================
-    onProgress({
-      microserviceId: microservice.id,
-      microserviceName: microservice.name,
-      phase: 'deploying',
-      percentage: 80,
-      output: '执行部署后命令...',
-      startTime,
-    });
-
     if (microservice.postUploadCommand) {
+      // 如果命令是相对路径（如 ./xxx.sh），需要先 cd 到远程目录
+      let actualCommand = microservice.postUploadCommand;
+      if (microservice.postUploadCommand.startsWith('./')) {
+        actualCommand = `cd ${microservice.remotePath} && ${microservice.postUploadCommand}`;
+      }
+      onProgress({
+        microserviceId: microservice.id,
+        microserviceName: microservice.name,
+        phase: 'deploying',
+        percentage: 80,
+        output: `[命令] ${actualCommand}`,
+        startTime,
+      });
+
       console.log('[MultiMicroserviceOrchestrator] 开始执行部署命令', microservice.postUploadCommand);
       try {
         const sftpService = new SFTPService();
         await sftpService.connect(serverConfig);
-
-        // 如果命令是相对路径（如 ./xxx.sh），需要先 cd 到远程目录
-        let actualCommand = microservice.postUploadCommand;
-        if (microservice.postUploadCommand.startsWith('./')) {
-          actualCommand = `cd ${microservice.remotePath} && ${microservice.postUploadCommand}`;
-        }
 
         const deployResult = await sftpService.executeCommand(actualCommand);
         console.log('[MultiMicroserviceOrchestrator] 部署命令执行完成', { success: deployResult.success });
@@ -400,6 +409,14 @@ export class MultiMicroserviceOrchestrator {
         result.error = result.deployResult.error;
       }
     } else {
+      onProgress({
+        microserviceId: microservice.id,
+        microserviceName: microservice.name,
+        phase: 'deploying',
+        percentage: 80,
+        output: `[命令]（无部署命令）`,
+        startTime,
+      });
       result.deployResult = {
         success: true,
         output: '(无部署命令)',
