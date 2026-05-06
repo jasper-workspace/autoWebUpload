@@ -130,6 +130,10 @@ export class LocalBuildService extends EventEmitter {
   private currentProcess: ChildProcess | null = null;
   private isCanceled = false;
 
+  // 构建进度报告节流：最小间隔(ms)
+  private readonly REPORT_THROTTLE_MS = 500;
+  private lastReportTime = 0;
+
   // 前端常见产物目录
   private readonly FRONTEND_OUTPUT_DIRS = ['dist', 'build', 'out', 'public'];
   // 后端常见产物目录
@@ -270,9 +274,14 @@ export class LocalBuildService extends EventEmitter {
         output += text;
 
         // 模拟进度 (实际进度需要解析构建工具输出)
+        // 节流：避免日志刷屏
         if (!this.isCanceled) {
-          lastProgress = Math.min(lastProgress + 3, 95);
-          this.reportProgress(type, '构建中...', lastProgress, 'building', output);
+          const now = Date.now();
+          if (now - this.lastReportTime >= this.REPORT_THROTTLE_MS) {
+            lastProgress = Math.min(lastProgress + 3, 95);
+            this.reportProgress(type, '构建中...', lastProgress, 'building', output);
+            this.lastReportTime = now;
+          }
         }
       });
 
@@ -280,8 +289,13 @@ export class LocalBuildService extends EventEmitter {
         const text = processBuildOutput(data.toString());
         output += text;
         // stderr 同样需要实时报告（如 npm warn 信息）
+        // 节流：避免日志刷屏
         if (!this.isCanceled) {
-          this.reportProgress(type, '构建中...', lastProgress, 'building', output);
+          const now = Date.now();
+          if (now - this.lastReportTime >= this.REPORT_THROTTLE_MS) {
+            this.reportProgress(type, '构建中...', lastProgress, 'building', output);
+            this.lastReportTime = now;
+          }
         }
       });
 
@@ -289,10 +303,28 @@ export class LocalBuildService extends EventEmitter {
         this.currentProcess = null;
         this.reportProgress(type, '构建完成', 100, code === 0 ? 'success' : 'error', output);
 
+        // 构建失败时，提取错误信息
+        let errorMsg: string | undefined;
+        if (code !== 0) {
+          // 提取最后几行错误信息（通常错误在最后）
+          const lines = output.split('\n').filter(l => l.trim());
+          const errorLines = lines.filter(l =>
+            l.toLowerCase().includes('error') ||
+            l.toLowerCase().includes('failed') ||
+            l.toLowerCase().includes('exception') ||
+            l.toLowerCase().includes('fail')
+          );
+          // 取最后10行错误相关内容
+          const lastErrors = errorLines.slice(-10).join('\n');
+          errorMsg = lastErrors
+            ? `构建失败，退出码: ${code}\n${lastErrors}`
+            : `构建失败，退出码: ${code}`;
+        }
+
         resolve({
           success: code === 0,
           output,
-          error: code !== 0 ? `构建失败，退出码: ${code}` : undefined,
+          error: errorMsg,
         });
       });
 

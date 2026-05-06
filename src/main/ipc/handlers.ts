@@ -945,11 +945,28 @@ export function setupIpcHandlers() {
 
   // 扫描微服务
   ipcMain.handle('microservice:scan', async (_, rootPath: string) => {
+    let microservices: any[] = [];
     try {
-      const microservices = await microserviceScanner.scanMicroservices(rootPath);
+      logger.info(`[microservice:scan] 开始扫描目录: ${rootPath}`);
+      const result = await microserviceScanner.scanMicroservices(rootPath);
+      logger.info(`[microservice:scan] 扫描完成，找到 ${result.length} 个微服务`);
+
+      // 确保返回的是纯 JSON 可序列化的数据（去除可能的不可序列化属性）
+      microservices = result.map(ms => ({
+        id: ms.id,
+        name: ms.name,
+        artifactId: ms.artifactId,
+        localPath: ms.localPath,
+        remotePath: ms.remotePath,
+        postUploadCommand: ms.postUploadCommand || '',
+        enabled: ms.enabled,
+        order: ms.order || 0,
+      }));
+
       return { success: true, data: microservices };
     } catch (error: any) {
       logger.error('扫描微服务失败', error);
+      logger.info(`扫描微服务失败 - 当前microservices数量: ${microservices.length}`);
       return { success: false, error: error.message || '扫描失败' };
     }
   });
@@ -1077,8 +1094,8 @@ export function setupIpcHandlers() {
         return { success: false, error: '服务器配置不存在' };
       }
 
-      // 获取后端根目录
-      const backendRootPath = config.backend?.buildConfig?.localPath;
+      // 获取后端根目录（微服务模式使用 rootPath）
+      const backendRootPath = config.backend?.rootPath;
       console.log('[handlers] 后端根目录', { backendRootPath });
       if (!backendRootPath) {
         return { success: false, error: '后端工作目录未配置' };

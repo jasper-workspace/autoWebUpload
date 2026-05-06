@@ -113,6 +113,7 @@
                   }}
                 </span>
               </button>
+
             </div>
 
             <!-- 后端单体一键部署按钮（当选择后端+单体架构时显示） -->
@@ -154,51 +155,25 @@
               取消部署
             </button>
 
-            <!-- 部署进度展示 -->
-            <div v-if="isDeployingRef" class="mt-4">
+            <!-- 后端微服务统一部署进度 -->
+            <div v-if="isDeployingRef && deployType === 'backend' && backendArchitecture === 'microservice'" class="mt-4">
               <h3 class="text-sm font-semibold text-[var(--foreground)] mb-2">
-                <span v-if="deployProgress?.phase === 'completed'">部署完成</span>
-                <span v-else>部署进度</span>
+                <span>部署进度</span>
               </h3>
               <div class="mb-2">
                 <div class="flex justify-between text-xs text-[var(--muted-text)] mb-1">
                   <span>
-                    <span v-if="deployProgress?.phase === 'completed'">
-                      部署完成
-                    </span>
-                    <span v-else-if="deployProgress?.phase === 'uploading'">
-                      [{{ deployType === "frontend" ? "前端" : "后端" }}] 上传中
-                      <Loader2 class="inline w-3 h-3 ml-1 animate-spin" />
-                    </span>
-                    <span v-else-if="deployProgress?.phase === 'deploying'">
-                      [{{ deployType === "frontend" ? "前端" : "后端" }}]部署中
-                      <Loader2 class="inline w-3 h-3 ml-1 animate-spin" />
-                    </span>
-                    <span v-else>
-                      [{{ deployType === "frontend" ? "前端" : "后端" }}]构建中
-                      <Loader2 class="inline w-3 h-3 ml-1 animate-spin" />
-                    </span>
+                    {{ getMsOverallPhaseLabel() }}
+                    <Loader2 class="inline w-3 h-3 ml-1 animate-spin" />
                   </span>
-                  <span :class="{
-                    'text-green-400': deployProgress?.status === 'success',
-                    'text-red-400': deployProgress?.status === 'error',
-                    'text-blue-400': deployProgress?.status === 'building',
-                  }">
-                    {{
-                      deployProgress?.status === "building"
-                        ? (deployProgress?.percentage || 0) + "% " + formatDuration(elapsedSeconds)
-                        : getStatusLabel(deployProgress?.status || "building")
-                    }}
+                  <span :class="getMsOverallColor()">
+                    {{ getMsOverallText() }}
                   </span>
                 </div>
                 <div class="w-full bg-[var(--card-border)] rounded-full h-2">
-                  <div class="h-2 transition-all duration-300 rounded-full" :class="{
-                    'bg-green-500': deployProgress?.status === 'success',
-                    'bg-red-500': deployProgress?.status === 'error',
-                    'bg-blue-500': deployProgress?.status === 'building',
-                  }" :style="{
-                      width: (deployProgress?.percentage || 0) + '%',
-                    }"></div>
+                  <div class="h-2 transition-all duration-300 rounded-full" :class="getMsOverallBarColor()" :style="{
+                    width: getMsOverallProgress() + '%',
+                  }"></div>
                 </div>
               </div>
             </div>
@@ -367,6 +342,7 @@ const {
   loadMicroservices,
   checkMaven,
   isDeploying: msIsDeploying,
+  cancelDeploy: cancelMsDeploy,
 } = useMicroservice();
 
 // 合并 isDeployingRef（微服务部署或单体部署中任意一个为true就显示部署状态）
@@ -531,8 +507,9 @@ watch(
     if (type === "frontend") {
       backendArchitecture.value = "single";
     }
-    // 切换到后端时，加载微服务列表
+    // 切换到后端时，加载微服务列表，并默认使用微服务架构
     if (type === "backend") {
+      backendArchitecture.value = "microservice";
       loadBackendMicroservices();
     }
   },
@@ -596,6 +573,123 @@ function formatDuration(seconds: number): string {
   } else {
     return `${s}秒`;
   }
+}
+
+// ==================== 微服务部署进度辅助函数 ====================
+
+/**
+ * 获取微服务总体进度百分比（0-100）
+ * 整合构建、上传、部署为一个统一进度
+ */
+function getMsOverallProgress(): number {
+  const progresses = Object.values(buildProgressMap);
+  if (progresses.length === 0) return 0;
+
+  // 统计各阶段微服务数量
+  const total = progresses.length;
+  let completed = 0;
+  let failed = 0;
+  let currentPhase: string = 'pending';
+
+  for (const p of progresses) {
+    if (p?.phase === 'completed') completed++;
+    else if (p?.phase === 'error') failed++;
+    else currentPhase = p?.phase || 'pending';
+  }
+
+  // 计算总体进度
+  // pending: 0%
+  // building: (0-33)%
+  // uploading: (34-66)%
+  // deploying: (67-99)%
+  // completed: 100%
+  // error: 保持当前进度
+  if (failed > 0 && completed + failed === total) {
+    // 所有微服务已完成（有失败），返回95%表示大部分完成
+    return 95;
+  }
+
+  if (completed === total) return 100;
+  if (currentPhase === 'pending') return 0;
+
+  const basePercent = (completed / total) * 100;
+  const phaseBonus = {
+    building: 10,
+    uploading: 50,
+    deploying: 80,
+  }[currentPhase] || 0;
+
+  return Math.min(Math.floor(basePercent + phaseBonus), 99);
+}
+
+/**
+ * 获取微服务总体阶段标签
+ */
+function getMsOverallPhaseLabel(): string {
+  const progresses = Object.values(buildProgressMap);
+  if (progresses.length === 0) return '准备中...';
+
+  const total = progresses.length;
+  let completed = 0;
+  let failed = 0;
+  let currentMsName = '';
+  let currentPhase: string = 'pending';
+
+  for (const p of progresses) {
+    if (p?.phase === 'completed') completed++;
+    else if (p?.phase === 'error') failed++;
+    else {
+      currentPhase = p?.phase || 'pending';
+      currentMsName = p?.microserviceName || '';
+    }
+  }
+
+  if (failed > 0 && completed + failed === total) {
+    return `[${failed}个微服务] 部署失败`;
+  }
+  if (completed === total) {
+    return `[${total}个微服务] 部署完成`;
+  }
+
+  const phaseLabels: Record<string, string> = {
+    building: '构建中',
+    uploading: '上传中',
+    deploying: '部署中',
+  };
+  return `[${currentMsName}] ${phaseLabels[currentPhase] || '处理中'}`;
+}
+
+/**
+ * 获取微服务总体颜色
+ */
+function getMsOverallColor(): string {
+  const progresses = Object.values(buildProgressMap);
+  const failed = progresses.filter(p => p?.phase === 'error').length;
+  const completed = progresses.filter(p => p?.phase === 'completed').length;
+
+  if (failed > 0) return 'text-red-400';
+  if (completed === progresses.length) return 'text-green-400';
+  return 'text-blue-400';
+}
+
+/**
+ * 获取微服务总体进度条颜色
+ */
+function getMsOverallBarColor(): string {
+  const progresses = Object.values(buildProgressMap);
+  const failed = progresses.filter(p => p?.phase === 'error').length;
+  const completed = progresses.filter(p => p?.phase === 'completed').length;
+
+  if (failed > 0) return 'bg-red-500';
+  if (completed === progresses.length) return 'bg-green-500';
+  return 'bg-blue-500';
+}
+
+/**
+ * 获取微服务总体文本（时间）
+ */
+function getMsOverallText(): string {
+  return formatDuration(elapsedSeconds.value);
 }
 
 // 部署计时器
@@ -702,7 +796,10 @@ let lastMicroserviceProgressKeys: Record<string, string> = {};
 watch(
   buildProgressMap,
   (progressMap) => {
-    if (!msIsDeploying.value) return;
+    if (!msIsDeploying.value) {
+      console.log('[watch buildProgressMap] msIsDeploying is false, skipping');
+      return;
+    }
 
     // 遍历所有微服务的进度
     for (const [msId, progress] of Object.entries(progressMap)) {
@@ -713,6 +810,8 @@ watch(
       if (lastMicroserviceProgressKeys[msId] === progressKey) continue;
       lastMicroserviceProgressKeys[msId] = progressKey;
 
+      console.log(`[watch buildProgressMap] ${progress.microserviceName} - phase: ${progress.phase}, percentage: ${progress.percentage}`);
+
       // 根据阶段打印日志
       switch (progress.phase) {
         case "pending":
@@ -720,11 +819,8 @@ watch(
           break;
 
         case "uploading":
-          if (progress.output && progress.output.includes("开始上传")) {
-            addLog(`[${progress.microserviceName}] ${progress.output}`);
-          } else if (progress.output && progress.output.includes("已上传")) {
-            addLog(`[${progress.microserviceName}] ${progress.output}`);
-          }
+          // 上传阶段：所有消息都记录
+          addLog(`[${progress.microserviceName}] ${progress.output || '上传中...'}`);
           break;
 
         case "deploying":
@@ -743,7 +839,7 @@ watch(
           break;
 
         case "building":
-          // 构建阶段（已跳过，但保留日志）
+          // 构建阶段
           if (progress.output) {
             addLog(`[${progress.microserviceName}] ${progress.output}`);
           }
@@ -1094,7 +1190,12 @@ async function handleOneClickDeploy() {
 
 // 取消部署
 function handleCancelDeploy() {
-  cancelDeploy();
+  // 根据部署类型调用正确的取消方法
+  if (deployType.value === 'backend' && backendArchitecture.value === 'microservice') {
+    cancelMsDeploy();
+  } else {
+    cancelDeploy();
+  }
   addLog("部署已取消", "warning");
 }
 
@@ -1164,6 +1265,8 @@ async function handleDeployAll() {
   lastMicroserviceProgressKeys = {};
   // 启动部署计时器
   startDeployTimer();
+  // 清空日志，准备接收新的构建日志
+  uploadStore.logs = [];
   addLog(`开始一键部署 ${enabledMicroserviceCount.value} 个微服务...`, "info");
 
   try {

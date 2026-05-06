@@ -6,11 +6,9 @@ import {
   MicroserviceDeployResult,
   MultiMicroserviceDeployResult,
   ServerConfig,
-  BuildConfig,
 } from '../../shared/types';
 import { mavenExecutor } from './mavenExecutor';
 import { SFTPService } from './sftp';
-import { LocalBuildService } from './localBuild';
 
 /**
  * 多微服务部署编排器
@@ -19,11 +17,6 @@ import { LocalBuildService } from './localBuild';
 export class MultiMicroserviceOrchestrator {
   private isCanceled = false;
   private currentMicroserviceId: string | null = null;
-  private localBuildService: LocalBuildService;
-
-  constructor() {
-    this.localBuildService = new LocalBuildService();
-  }
 
   /**
    * 一键部署全部启用的微服务
@@ -171,32 +164,32 @@ export class MultiMicroserviceOrchestrator {
       startTime,
     });
 
-    // 构建命令：mvn clean package -DskipTests
-    const buildConfig: BuildConfig = {
-      type: 'backend',
-      localPath: microservicePath,
-      buildCommand: 'mvn clean package -DskipTests',
-      stopOnBuildFailure: true,
-    };
-
-    // 创建进度监听器，将 BuildProgress 转换为 MicroserviceBuildProgress
-    const buildProgressHandler = (buildProgress: any) => {
-      onProgress({
-        microserviceId: microservice.id,
-        microserviceName: microservice.name,
-        phase: 'building',
-        percentage: buildProgress.percentage || 0,
-        output: buildProgress.step || '',
-        startTime,
-      });
-    };
-    this.localBuildService.on('progress', buildProgressHandler);
-
     let buildSuccess = false;
     let buildOutput = '';
 
     try {
-      const buildResult = await this.localBuildService.executeBuild(buildConfig);
+      // 使用 mavenExecutor 执行 Maven 构建
+      // 传入 backendRootPath 作为 reactorPath，启用 Maven Reactor Build 模式
+      const buildResult = await mavenExecutor.executeCommand(
+        microservicePath,
+        'package', // Maven命令类型
+        true, // skipTests
+        (output) => {
+          // 进度回调
+          onProgress({
+            microserviceId: microservice.id,
+            microserviceName: microservice.name,
+            phase: 'building',
+            percentage: 50, // 模拟进度
+            output: output.slice(-500), // 只显示最后500字符
+            startTime,
+          });
+        },
+        undefined, // mavenPath
+        undefined, // javaPath
+        backendRootPath // reactorPath - 启用 Reactor Build 模式
+      );
+
       buildSuccess = buildResult.success;
       buildOutput = buildResult.output;
 
@@ -224,8 +217,20 @@ export class MultiMicroserviceOrchestrator {
         output: '构建完成',
         startTime,
       });
-    } finally {
-      this.localBuildService.removeListener('progress', buildProgressHandler);
+    } catch (error) {
+      onProgress({
+        microserviceId: microservice.id,
+        microserviceName: microservice.name,
+        phase: 'error',
+        percentage: 0,
+        output: '构建失败',
+        error: error instanceof Error ? error.message : String(error),
+        startTime,
+        endTime: Date.now(),
+        duration: Date.now() - startTime,
+      });
+      result.error = `构建异常: ${error instanceof Error ? error.message : String(error)}`;
+      return result;
     }
 
     // ==================== 阶段1: SFTP上传jar包产物 ====================
@@ -240,57 +245,64 @@ export class MultiMicroserviceOrchestrator {
     });
 
     const uploadStartTime = Date.now();
+    let uploadError: string | undefined;
 
+    // 检测构建产物（target/*.jar）
+    console.log('[MultiMicroserviceOrchestrator] 开始检测jar包产物', microservicePath);
+    let artifacts: { type: string; path: string; size: number }[] = [];
     try {
-      // 检测构建产物（target/*.jar）
-      console.log('[MultiMicroserviceOrchestrator] 开始检测jar包产物', microservicePath);
-      const artifacts = await mavenExecutor.getBuildArtifacts(microservicePath);
+      artifacts = await mavenExecutor.getBuildArtifacts(microservicePath);
       console.log('[MultiMicroserviceOrchestrator] jar包检测完成', { count: artifacts.length, artifacts });
+    } catch (error) {
+      uploadError = `检测jar包产物失败: ${error instanceof Error ? error.message : String(error)}`;
+    }
 
-      if (artifacts.length === 0) {
-        result.uploadResult = {
-          success: false,
-          duration: Date.now() - uploadStartTime,
-          uploadedFiles: 0,
-          error: '未找到jar包产物，请确保已执行Maven构建',
-        };
-        result.error = result.uploadResult.error;
-        onProgress({
-          microserviceId: microservice.id,
-          microserviceName: microservice.name,
-          phase: 'error',
-          percentage: 10,
-          output: '未找到jar包产物',
-          error: result.error,
-          startTime,
-          endTime: Date.now(),
-          duration: Date.now() - startTime,
-        });
-        return result;
-      }
+    // 如果检测失败或没有产物
+    if (uploadError || artifacts.length === 0) {
+      result.uploadResult = {
+        success: false,
+        duration: Date.now() - uploadStartTime,
+        uploadedFiles: 0,
+        error: uploadError || '未找到jar包产物，请确保已执行Maven构建',
+      };
+      result.error = result.uploadResult.error;
+      onProgress({
+        microserviceId: microservice.id,
+        microserviceName: microservice.name,
+        phase: 'error',
+        percentage: 10,
+        output: result.error || '检测jar包产物失败',
+        error: result.error,
+        startTime,
+        endTime: Date.now(),
+        duration: Date.now() - startTime,
+      });
+      return result;
+    }
 
+    // 上传产物
+    let uploadedFiles = 0;
+    try {
       // 创建SFTP服务实例
       console.log('[MultiMicroserviceOrchestrator] 创建SFTP服务并连接...');
       const sftpService = new SFTPService();
       await sftpService.connect(serverConfig);
       console.log('[MultiMicroserviceOrchestrator] SFTP连接成功');
 
-      let uploadedFiles = 0;
-
       // 上传每个产物
       for (const artifact of artifacts) {
-        const remotePath = path.posix.join(microservice.remotePath, path.basename(artifact.path));
-        console.log('[MultiMicroserviceOrchestrator] 开始上传', { local: artifact.path, remote: remotePath });
+        // 直接传 remotePath 作为目录，uploadFolder 内部会自己提取文件名
+        const remoteDir = microservice.remotePath;
+        console.log('[MultiMicroserviceOrchestrator] 开始上传', { local: artifact.path, remote: remoteDir });
 
-        // uploadFolder可以处理文件和目录
-        await sftpService.uploadFolder(artifact.path, remotePath, () => {});
+        await sftpService.uploadFolder(artifact.path, remoteDir, () => {});
         uploadedFiles++;
 
         onProgress({
           microserviceId: microservice.id,
           microserviceName: microservice.name,
           phase: 'uploading',
-          percentage: 50,
+          percentage: 30 + Math.floor((uploadedFiles / artifacts.length) * 40),
           output: `已上传 ${uploadedFiles}/${artifacts.length} 个产物`,
           startTime,
         });
@@ -308,7 +320,7 @@ export class MultiMicroserviceOrchestrator {
       result.uploadResult = {
         success: false,
         duration: Date.now() - uploadStartTime,
-        uploadedFiles: 0,
+        uploadedFiles,
         error: `上传失败: ${error instanceof Error ? error.message : String(error)}`,
       };
       result.error = result.uploadResult.error;
@@ -342,7 +354,13 @@ export class MultiMicroserviceOrchestrator {
         const sftpService = new SFTPService();
         await sftpService.connect(serverConfig);
 
-        const deployResult = await sftpService.executeCommand(microservice.postUploadCommand);
+        // 如果命令是相对路径（如 ./xxx.sh），需要先 cd 到远程目录
+        let actualCommand = microservice.postUploadCommand;
+        if (microservice.postUploadCommand.startsWith('./')) {
+          actualCommand = `cd ${microservice.remotePath} && ${microservice.postUploadCommand}`;
+        }
+
+        const deployResult = await sftpService.executeCommand(actualCommand);
         console.log('[MultiMicroserviceOrchestrator] 部署命令执行完成', { success: deployResult.success });
 
         result.deployResult = {
@@ -393,6 +411,8 @@ export class MultiMicroserviceOrchestrator {
    */
   cancelDeploy(): void {
     this.isCanceled = true;
+    // 杀死正在运行的 Maven 进程
+    mavenExecutor.cancelExecution();
     if (this.currentMicroserviceId) {
       this.currentMicroserviceId = null;
     }

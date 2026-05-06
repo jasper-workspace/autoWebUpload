@@ -960,9 +960,9 @@ async function scanMicroservices() {
 
         // 如果是编辑模式，自动保存微服务配置
         if (form.id && scannedMicroservices.value.length > 0) {
-          // 保存微服务列表和根路径
+          // 将响应式对象转换为普通对象，避免 Electron IPC 克隆失败
           const backendConfig = {
-            microservices: scannedMicroservices.value,
+            microservices: JSON.parse(JSON.stringify(scannedMicroservices.value)),
             rootPath: backendRootPath.value,
           };
           await window.electronAPI.saveMicroserviceConfig(form.id, backendConfig);

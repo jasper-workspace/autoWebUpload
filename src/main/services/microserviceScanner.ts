@@ -4,6 +4,17 @@ import path from 'path';
 import { MicroserviceConfig } from '../../shared/types';
 
 /**
+ * POM文件解析结果
+ */
+interface PomParseResult {
+  artifactId: string;
+  name?: string;
+  packaging?: string;
+  /** 是否为可部署的微服务（通过检测 spring-boot-maven-plugin 判断） */
+  isDeployable: boolean;
+}
+
+/**
  * 微服务扫描服务
  * 负责扫描后端根目录，自动发现所有Maven模块
  */
@@ -71,6 +82,11 @@ export class MicroserviceScanner {
               continue;
             }
 
+            // 跳过非可部署模块（没有 spring-boot-maven-plugin 的模块通常是公共库或接口定义）
+            if (!pomInfo.isDeployable) {
+              continue;
+            }
+
             const relativePath = path.relative(rootPath, fullPath);
             // 使用目录名作为微服务名称，更直观
             const microserviceName = pomInfo.name || entry.name;
@@ -99,10 +115,9 @@ export class MicroserviceScanner {
 
   /**
    * 解析pom.xml文件
+   * 通过检测 spring-boot-maven-plugin 判断是否为可部署的微服务
    */
-  private async parsePom(
-    pomPath: string
-  ): Promise<{ artifactId: string; name?: string; packaging?: string }> {
+  private async parsePom(pomPath: string): Promise<PomParseResult> {
     try {
       const content = await fs.readFile(pomPath, 'utf-8');
 
@@ -111,14 +126,20 @@ export class MicroserviceScanner {
       const nameMatch = content.match(/<name>([^<]+)<\/name>/);
       const packagingMatch = content.match(/<packaging>([^<]+)<\/packaging>/);
 
+      // 检测 spring-boot-maven-plugin - 这是判断是否为可执行微服务的关键标志
+      // 只有可执行的 Spring Boot 应用才需要这个 plugin
+      // 公共库（common、api、domain）只是依赖，不会打包成可执行jar
+      const hasSpringBootPlugin = /<artifactId>spring-boot-maven-plugin<\/artifactId>/.test(content);
+
       return {
         artifactId: artifactIdMatch ? artifactIdMatch[1] : '',
         name: nameMatch ? nameMatch[1] : undefined,
         packaging: packagingMatch ? packagingMatch[1] : 'jar',
+        isDeployable: hasSpringBootPlugin,
       };
     } catch (error) {
       console.error(`[MicroserviceScanner] 解析pom.xml失败: ${pomPath}`, error);
-      return { artifactId: '' };
+      return { artifactId: '', isDeployable: false };
     }
   }
 

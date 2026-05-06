@@ -309,9 +309,9 @@ export function useMicroservice() {
     try {
       console.log('[useMicroservice] 调用 window.electronAPI.deployAllMicroservices', { serverId, selectedIds });
 
-      // 添加超时机制（30秒）
+      // 添加超时机制（10分钟，Maven构建可能需要较长时间）
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('IPC 调用超时（30秒）')), 30000);
+        setTimeout(() => reject(new Error('IPC 调用超时（10分钟）')), 600000);
       });
 
       const result = await Promise.race([

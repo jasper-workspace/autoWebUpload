@@ -1,3 +1,4 @@
+
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs/promises';
@@ -9,6 +10,10 @@ import fs from 'fs/promises';
 export class MavenExecutor {
   private currentProcess: ChildProcess | null = null;
   private isCanceled = false;
+
+  // 构建进度报告节流：最小间隔(ms)
+  private readonly REPORT_THROTTLE_MS = 500;
+  private lastReportTime = 0;
 
   /**
    * 执行Maven命令
@@ -26,7 +31,8 @@ export class MavenExecutor {
     skipTests: boolean = true,
     onProgress?: (output: string) => void,
     mavenPath?: string,
-    javaPath?: string
+    javaPath?: string,
+    reactorPath?: string
   ): Promise<{ success: boolean; output: string; error?: string }> {
     this.isCanceled = false;
     let output = '';
@@ -38,11 +44,26 @@ export class MavenExecutor {
       mavenCmd += ' -DskipTests';
     }
 
-    // 构建PowerShell命令
-    let psCommand = `cd '${microservicePath}'; ${mavenCmd}`;
-    if (javaPath) {
-      psCommand = `$env:JAVA_HOME='${javaPath}'; $env:PATH=\"${javaPath}\\bin;$env:PATH\"; ${psCommand}`;
+    // 确定执行目录和命令
+    let execDir = microservicePath;
+    let finalCommand = mavenCmd;
+
+    // 如果提供了reactorPath，使用 reactor build 模式
+    if (reactorPath) {
+      // 计算相对于 reactorPath 的模块路径（相对于reactor根目录）
+      const relativePomPath = path.relative(reactorPath, microservicePath);
+      // 去掉末尾的 pom.xml
+      const modulePath = relativePomPath.replace(/[/\\]pom\.xml$/, '');
+
+      execDir = reactorPath;
+      // 在 reactor 根目录执行，使用 -pl 指定模块，-am 同时构建依赖
+      // 不使用引号，Windows cmd 对路径格式的处理可能有问题
+      finalCommand = `${mavenCmd} -pl ${modulePath} -am`;
+      console.log(`[MavenExecutor] Reactor Build: ${finalCommand} (执行目录: ${execDir})`);
     }
+
+    // 构建PowerShell命令，设置UTF-8编码
+    const psCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 > $null; cd '${execDir}'; ${finalCommand}`;
 
     return new Promise((resolve) => {
       // 使用PowerShell执行Maven命令
@@ -50,28 +71,54 @@ export class MavenExecutor {
         'powershell',
         [
           '-NoProfile',
+          '-NoLogo',
           '-Command',
           psCommand,
         ],
         {
           shell: false,
           windowsHide: true,
+          stdio: ['ignore', 'pipe', 'pipe'],
         }
       );
 
       const process = this.currentProcess;
+      console.log('[MavenExecutor] Maven进程已启动, PID:', this.currentProcess.pid);
+
+      // 节流后的输出累积器
+      let pendingOutput = '';
 
       process.stdout?.on('data', (data: Buffer) => {
         const text = data.toString();
         output += text;
-        onProgress?.(text);
+        pendingOutput += text;
+
+        // 节流：避免日志刷屏
+        if (!this.isCanceled) {
+          const now = Date.now();
+          if (now - this.lastReportTime >= this.REPORT_THROTTLE_MS) {
+            onProgress?.(pendingOutput);
+            pendingOutput = '';
+            this.lastReportTime = now;
+          }
+        }
       });
 
       process.stderr?.on('data', (data: Buffer) => {
         const text = data.toString();
         // Maven的错误输出有时候会写到stderr，这是正常的
         output += text;
-        onProgress?.(text);
+        pendingOutput += text;
+
+        // 节流：避免日志刷屏
+        if (!this.isCanceled) {
+          const now = Date.now();
+          if (now - this.lastReportTime >= this.REPORT_THROTTLE_MS) {
+            onProgress?.(pendingOutput);
+            pendingOutput = '';
+            this.lastReportTime = now;
+          }
+        }
       });
 
       process.on('close', (code: number | null) => {
@@ -86,10 +133,29 @@ export class MavenExecutor {
           return;
         }
 
+        // 构建失败时，提取错误信息
+        let errorMsg: string | undefined;
+        if (code !== 0) {
+          // 提取最后几行错误信息（通常错误在最后）
+          const lines = output.split('\n').filter(l => l.trim());
+          const errorLines = lines.filter(l =>
+            l.toLowerCase().includes('error') ||
+            l.toLowerCase().includes('failed') ||
+            l.toLowerCase().includes('exception') ||
+            l.toLowerCase().includes('fail') ||
+            l.toLowerCase().includes('compilation failure')
+          );
+          // 取最后10行错误相关内容
+          const lastErrors = errorLines.slice(-10).join('\n');
+          errorMsg = lastErrors
+            ? `Maven构建失败，退出码: ${code}\n${lastErrors}`
+            : `Maven构建失败，退出码: ${code}`;
+        }
+
         resolve({
           success: code === 0,
           output,
-          error: code !== 0 ? `Maven命令执行失败，退出码: ${code}` : undefined,
+          error: errorMsg,
         });
       });
 
@@ -204,6 +270,7 @@ export class MavenExecutor {
       for (const entry of entries) {
         const fullPath = path.join(targetPath, entry.name);
 
+        // 只上传 jar 包文件，排除 original 文件（Spring Boot repackage 生成的文件）
         if (entry.isFile() && entry.name.endsWith('.jar') && !entry.name.includes('original')) {
           const stats = await fs.stat(fullPath);
           artifacts.push({
@@ -211,15 +278,8 @@ export class MavenExecutor {
             path: fullPath,
             size: stats.size,
           });
-        } else if (entry.isDirectory()) {
-          // 检查是否是可部署的目录结构
-          const stats = await fs.stat(fullPath);
-          artifacts.push({
-            type: 'dir',
-            path: fullPath,
-            size: stats.size,
-          });
         }
+        // 不上传目录
       }
     } catch (error) {
       console.error(`[MavenExecutor] 获取构建产物失败: ${targetPath}`, error);
