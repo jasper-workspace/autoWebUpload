@@ -167,7 +167,7 @@
                     <Loader2 class="inline w-3 h-3 ml-1 animate-spin" />
                   </span>
                   <span :class="getMsOverallColor()">
-                    {{ getMsOverallText() }}
+                    {{ getMsOverallProgress() }}% {{ getMsOverallText() }}
                   </span>
                 </div>
                 <div class="w-full bg-[var(--card-border)] rounded-full h-2">
