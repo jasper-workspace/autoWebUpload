@@ -48,7 +48,7 @@ export class DeployOrchestrator {
     const buildService = this.localBuildService || new LocalBuildService();
 
     // ===== 阶段1: 构建 =====
-    this.reportDeployProgress('building', `开始构建${buildConfig.type === 'frontend' ? '前端' : '后端'}...`, 0, 'building');
+    this.reportDeployProgress('building', `执行构建命令: ${buildConfig.buildCommand}`, 0, 'building');
 
     const buildResult = await buildService.executeBuild(buildConfig);
     result.build = {
@@ -69,7 +69,11 @@ export class DeployOrchestrator {
 
     // ===== 阶段2: 上传 =====
     const uploadStartTime = Date.now();
-    this.reportDeployProgress('uploading', '开始上传文件', 0, 'building');
+    const remotePath = buildConfig.type === 'frontend'
+      ? (serverConfig.frontend?.remotePath || serverConfig.remotePath || '')
+      : (serverConfig.backend?.remotePath || serverConfig.backendPath || '');
+    const localPath = `${buildConfig.localPath}/${buildResult.detectedOutputDir || buildConfig.outputDir}`;
+    this.reportDeployProgress('uploading', `上传文件: ${localPath} -> ${remotePath}`, 0, 'building');
 
     this.sftpService = new SFTPService();
     try {
@@ -105,11 +109,11 @@ export class DeployOrchestrator {
     }
 
     // ===== 阶段3: 远程部署命令 =====
-    this.reportDeployProgress('deploying', '执行部署命令', 0, 'building');
-
     const postCommand = buildConfig.type === 'frontend'
       ? serverConfig.frontend?.postUploadCommand
       : serverConfig.backend?.postUploadCommand;
+
+    this.reportDeployProgress('deploying', `执行部署命令: ${postCommand || '(无)'}`, 0, 'building');
 
     if (postCommand) {
       this.sftpService = new SFTPService();

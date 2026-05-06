@@ -1,6 +1,6 @@
 {
   "name": "auto-web-upload",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "author": "jasper",
   "description": "Linux 服务器文件自动部署工具",
   "license": "MIT",
