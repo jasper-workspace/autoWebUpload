@@ -839,8 +839,8 @@ async function exportConfigs() {
   }
 
   try {
-    // 将响应式对象转换为普通对象后再传递
-    const plainConfigs = servers.value.map(s => ({ ...s }));
+    // 将响应式对象深度转换为普通对象后再传递
+    const plainConfigs = JSON.parse(JSON.stringify(servers.value));
     const result = await window.electronAPI.exportConfigs(plainConfigs);
     if (result.success) {
       showSuccess('导出成功', `配置已导出到: ${result.filePath}`);
