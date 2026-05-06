@@ -63,7 +63,8 @@ export class MavenExecutor {
     }
 
     // 构建PowerShell命令，设置UTF-8编码
-    const psCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 > $null; cd '${execDir}'; ${finalCommand}`;
+    // 关键修复：JAVA_TOOL_OPTIONS 强制 JVM 使用 UTF-8 编码输出，解决 Java 编译器中文警告乱码问题
+    const psCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; $env:JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"; $env:MAVEN_OPTS="-Dmdep.outputFile=target/maven-media.properties"; chcp 65001 > $null; cd '${execDir}'; ${finalCommand}`;
 
     return new Promise((resolve) => {
       // 使用PowerShell执行Maven命令
