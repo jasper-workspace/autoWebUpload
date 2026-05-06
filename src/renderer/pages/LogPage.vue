@@ -67,28 +67,28 @@
               <!-- 日志按钮 -->
               <template v-else>
                 <button
-                  v-if="selectedServer?.frontendLogCommand"
+                  v-if="selectedServer?.frontend?.logCommand"
                   @click="executeLogCommand('frontend')"
                   :disabled="!isConnected"
                   class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
                 >
                   <span class="text-blue-400">前端日志</span>
-                  <span class="block text-[var(--muted-text)] truncate" :title="selectedServer.frontendLogCommand">
-                    {{ selectedServer.frontendLogCommand }}
+                  <span class="block text-[var(--muted-text)] truncate" :title="selectedServer.frontend.logCommand">
+                    {{ selectedServer.frontend.logCommand }}
                   </span>
                 </button>
                 <button
-                  v-if="selectedServer?.backendLogCommand"
+                  v-if="selectedServer?.backend?.logCommand"
                   @click="executeLogCommand('backend')"
                   :disabled="!isConnected"
                   class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
                 >
                   <span class="text-purple-400">后端日志</span>
-                  <span class="block text-[var(--muted-text)] truncate" :title="selectedServer.backendLogCommand">
-                    {{ selectedServer.backendLogCommand }}
+                  <span class="block text-[var(--muted-text)] truncate" :title="selectedServer.backend.logCommand">
+                    {{ selectedServer.backend.logCommand }}
                   </span>
                 </button>
-                <div v-if="!selectedServer?.frontendLogCommand && !selectedServer?.backendLogCommand" class="text-xs text-[var(--muted-text)] px-3 py-2">
+                <div v-if="!selectedServer?.frontend?.logCommand && !selectedServer?.backend?.logCommand" class="text-xs text-[var(--muted-text)] px-3 py-2">
                   当前服务器未配置日志命令
                 </div>
               </template>
@@ -329,8 +329,8 @@ function executeLogCommand(type: 'frontend' | 'backend') {
   if (!isConnected.value || !selectedServer.value) return;
 
   const command = type === 'frontend'
-    ? selectedServer.value.frontendLogCommand
-    : selectedServer.value.backendLogCommand;
+    ? selectedServer.value.frontend?.logCommand
+    : selectedServer.value.backend?.logCommand;
 
   if (command) {
     window.electronAPI.terminalWrite('clear\r');
