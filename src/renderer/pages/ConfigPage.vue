@@ -371,9 +371,6 @@
                 <AlertTriangle class="w-4 h-4 text-yellow-500" />
                 <span class="text-sm text-yellow-500">未检测到Maven，请确保已安装Maven并配置环境变量</span>
               </div>
-              <div v-else class="text-xs text-[var(--muted-text)]">
-                Maven版本: {{ mavenVersion }}
-              </div>
 
               <!-- 微服务列表预览 -->
               <div v-if="scannedMicroservices.length > 0" class="border border-[var(--card-border)] rounded-lg p-3">
