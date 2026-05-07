@@ -95,7 +95,7 @@ export class MicroserviceScanner {
               name: microserviceName,
               artifactId: pomInfo.artifactId,
               localPath: relativePath.replace(/\\/g, '/'),
-              remotePath: this.generateDefaultRemotePath(entry.name),
+              remotePath: '',  // 不设置默认远程路径，让用户自己填写
               postUploadCommand: '',
               enabled: true,
               order: microservices.length,
