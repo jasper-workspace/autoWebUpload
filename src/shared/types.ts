@@ -210,6 +210,9 @@ export interface MicroserviceConfig {
   /** 上传后执行的命令（如重启服务、授权等） */
   postUploadCommand?: string;
 
+  /** 日志查看命令 */
+  logCommand?: string;
+
   /** 是否启用该微服务 */
   enabled: boolean;
 

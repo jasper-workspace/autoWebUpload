@@ -88,7 +88,23 @@
                     {{ selectedServer.backend.logCommand }}
                   </span>
                 </button>
-                <div v-if="!selectedServer?.frontend?.logCommand && !selectedServer?.backend?.logCommand" class="text-xs text-[var(--muted-text)] px-3 py-2">
+                <!-- 微服务日志按钮 -->
+                <template v-if="selectedServer?.backend?.microservices?.length">
+                  <template v-for="ms in selectedServer.backend.microservices" :key="ms.id">
+                    <button
+                      v-if="ms.enabled && ms.logCommand"
+                      @click="executeMicroserviceLogCommand(ms.id, ms.logCommand)"
+                      :disabled="!isConnected"
+                      class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
+                    >
+                      <span class="text-cyan-400">{{ ms.name }}日志</span>
+                      <span class="block text-[var(--muted-text)] truncate" :title="ms.logCommand">
+                        {{ ms.logCommand }}
+                      </span>
+                    </button>
+                  </template>
+                </template>
+                <div v-if="!selectedServer?.frontend?.logCommand && !selectedServer?.backend?.logCommand && !hasMicroserviceLogCommand" class="text-xs text-[var(--muted-text)] px-3 py-2">
                   当前服务器未配置日志命令
                 </div>
               </template>
@@ -183,6 +199,14 @@ let closeDebounceTimer: NodeJS.Timeout | null = null; // close事件防抖定时
 // 计算属性 - 直接使用 serverStore 的选中服务器
 const selectedServer = computed(() => serverStore.selectedServer);
 const isConnected = computed(() => terminalStore.isConnected);
+
+// 计算是否有微服务配置了日志命令
+const hasMicroserviceLogCommand = computed(() => {
+  if (!selectedServer.value?.backend?.microservices?.length) return false;
+  return selectedServer.value.backend.microservices.some(
+    (ms: any) => ms.enabled && ms.logCommand
+  );
+});
 
 // 页面首次加载
 onMounted(async () => {
@@ -337,6 +361,14 @@ function executeLogCommand(type: 'frontend' | 'backend') {
     isViewingLog.value = true;
     window.electronAPI.terminalWrite(command + '\r');
   }
+}
+
+// 执行微服务日志命令
+function executeMicroserviceLogCommand(msId: string, command: string) {
+  if (!isConnected.value) return;
+  window.electronAPI.terminalWrite('clear\r');
+  isViewingLog.value = true;
+  window.electronAPI.terminalWrite(command + '\r');
 }
 
 // 停止实时日志
