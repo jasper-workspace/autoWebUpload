@@ -426,6 +426,17 @@
                           class="input-field text-xs flex-1 py-0.5"
                           placeholder="chmod -R 755 /opt/app/xxx" />
                       </div>
+
+                      <!-- 日志命令 -->
+                      <div class="flex items-center gap-2">
+                        <label class="text-xs text-[var(--muted-text)] w-14 flex-shrink-0">日志命令:</label>
+                        <input
+                          v-model="ms.logCommand"
+                          type="text"
+                          :disabled="!ms.enabled"
+                          class="input-field text-xs flex-1 py-0.5"
+                          placeholder="tail -f /opt/logs/xxx.log" />
+                      </div>
                     </div>
                   </div>
                 </div>
