@@ -1,7 +1,7 @@
 <template>
-  <div class="max-w-7xl mx-auto h-full flex flex-col">
+  <div class="flex flex-col h-full mx-auto max-w-7xl">
     <!-- 顶部工具栏 -->
-    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+    <div class="flex items-center justify-between flex-shrink-0 mb-4">
       <h2 class="text-lg font-semibold text-[var(--foreground)]">服务器配置</h2>
       <div class="flex items-center gap-2">
         <button @click="importConfigs" class="btn-secondary flex items-center gap-2 px-3 py-1.5 text-sm">
@@ -19,26 +19,26 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 overflow-hidden">
+    <div class="grid flex-1 grid-cols-1 gap-4 overflow-hidden md:grid-cols-12">
       <!-- 服务器列表 -->
-      <div class="card p-3 flex flex-col overflow-hidden md:col-span-4">
-        <div class="flex justify-between items-center mb-4 flex-shrink-0">
+      <div class="flex flex-col p-3 overflow-hidden card md:col-span-4">
+        <div class="flex items-center justify-between flex-shrink-0 mb-4">
           <h2 class="text-sm font-semibold text-[var(--foreground)]">服务器列表</h2>
           <span class="text-xs text-[var(--muted-text)]">{{ servers.length }} 台服务器</span>
         </div>
 
-        <div class="space-y-3 overflow-y-auto flex-1 pr-2">
+        <div class="flex-1 pr-2 space-y-3 overflow-y-auto">
           <div v-for="server in servers" :key="server.id" :class="[
             'px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200',
             selectedServerId === server.id
               ? 'border-[#409EFF] bg-[#409EFF]/10'
               : 'border-[var(--card-border)] hover:border-[var(--scrollbar-thumb-hover)] bg-[var(--card-bg)]'
           ]" @click="selectServer(server.id)">
-            <div class="flex justify-between items-start mb-2">
+            <div class="flex items-start justify-between mb-2">
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-medium text-[var(--foreground)]">{{ server.name }}</h3>
               </div>
-              <button @click.stop="deleteServer(server.id)" class="p-1 hover:bg-red-500/20 rounded transition-colors">
+              <button @click.stop="deleteServer(server.id)" class="p-1 transition-colors rounded hover:bg-red-500/20">
                 <Trash2 class="w-4 h-4 text-red-400" />
               </button>
             </div>
@@ -56,12 +56,12 @@
       </div>
 
       <!-- 配置表单 -->
-      <div class="card p-5 overflow-y-auto flex flex-col h-full md:col-span-8">
+      <div class="flex flex-col h-full p-5 overflow-y-auto card md:col-span-8">
         <h2 class="text-sm font-semibold text-[var(--foreground)] mb-4">
           {{ isEditing ? '编辑服务器' : '添加服务器' }}
         </h2>
 
-        <div class="space-y-6 overflow-y-auto flex-1 pr-2">
+        <div class="flex-1 pr-2 space-y-6 overflow-y-auto">
           <!-- 1. 服务器信息 -->
           <div class="section">
             <h3 class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
@@ -107,7 +107,7 @@
               <div v-if="authType === 'password'">
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">密码</label>
                 <div class="relative">
-                  <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="input-field pr-10"
+                  <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="pr-10 input-field"
                     placeholder="请输入密码" />
                   <button type="button" @click="showPassword = !showPassword"
                     class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-text)] hover:text-[var(--foreground)]">
@@ -130,9 +130,9 @@
               <!-- 测试连接按钮 -->
               <div class="pt-2">
                 <button type="button" @click="testConnection" :disabled="testingConnection"
-                  class="btn-primary flex items-center justify-center gap-2 text-sm w-full">
+                  class="flex items-center justify-center w-full gap-2 text-sm btn-primary">
                   <Wifi v-if="!testingConnection" class="w-4 h-4" />
-                  <div v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div v-else class="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
                   {{ testingConnection ? '测试中...' : '测试连接' }}
                 </button>
               </div>
@@ -141,7 +141,7 @@
 
           <!-- 2. 前端配置 -->
           <div class="section">
-            <h3 class="text-md font-semibold mb-4 flex items-center gap-2">
+            <h3 class="flex items-center gap-2 mb-4 font-semibold text-md">
               <div class="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-blue-600"></div>
               前端部署配置
             </h3>
@@ -155,7 +155,7 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <textarea v-model="form.frontend.postUploadCommand" class="input-field h-20 resize-none"
+                <textarea v-model="form.frontend.postUploadCommand" class="h-20 resize-none input-field"
                   placeholder="chmod -R 755 /var/www/html"></textarea>
               </div>
 
@@ -177,9 +177,9 @@
                   <div>
                     <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">项目路径</label>
                     <div class="flex gap-2">
-                      <input v-model="form.frontend.buildConfig!.localPath" type="text" class="input-field flex-1"
+                      <input v-model="form.frontend.buildConfig!.localPath" type="text" class="flex-1 input-field"
                         placeholder="例如: D:\projects\my-vue-app" />
-                      <button type="button" @click="selectBuildPath('frontend')" class="btn-secondary text-sm">
+                      <button type="button" @click="selectBuildPath('frontend')" class="text-sm btn-secondary">
                         浏览
                       </button>
                     </div>
@@ -208,7 +208,7 @@
 
           <!-- 3. 后端配置 -->
           <div class="section">
-            <h3 class="text-md font-semibold mb-4 flex items-center gap-2">
+            <h3 class="flex items-center gap-2 mb-4 font-semibold text-md">
               <div class="w-4 h-4 rounded bg-gradient-to-br from-purple-400 to-purple-600"></div>
               后端部署配置
             </h3>
@@ -250,7 +250,7 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   上传后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <textarea v-model="form.backend.postUploadCommand" class="input-field h-20 resize-none"
+                <textarea v-model="form.backend.postUploadCommand" class="h-20 resize-none input-field"
                   placeholder="npm install && pm2 restart app"></textarea>
               </div>
 
@@ -272,9 +272,9 @@
                   <div>
                     <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">项目路径</label>
                     <div class="flex gap-2">
-                      <input v-model="form.backend.buildConfig!.localPath" type="text" class="input-field flex-1"
+                      <input v-model="form.backend.buildConfig!.localPath" type="text" class="flex-1 input-field"
                         placeholder="例如: D:\projects\my-backend" />
-                      <button type="button" @click="selectBuildPath('backend')" class="btn-secondary text-sm">
+                      <button type="button" @click="selectBuildPath('backend')" class="text-sm btn-secondary">
                         浏览
                       </button>
                     </div>
@@ -308,9 +308,9 @@
                   Maven 路径 <span class="text-[var(--muted-text)]">(可选，留空使用系统默认)</span>
                 </label>
                 <div class="flex gap-2">
-                  <input v-model="mavenPath" type="text" class="input-field flex-1"
+                  <input v-model="mavenPath" type="text" class="flex-1 input-field"
                     placeholder="例如: D:\apache-maven-3.9.9" />
-                  <button type="button" @click="selectMavenPath" class="btn-secondary text-sm">
+                  <button type="button" @click="selectMavenPath" class="text-sm btn-secondary">
                     浏览
                   </button>
                 </div>
@@ -325,9 +325,9 @@
                   Java 路径 <span class="text-[var(--muted-text)]">(可选，留空使用系统默认)</span>
                 </label>
                 <div class="flex gap-2">
-                  <input v-model="javaPath" type="text" class="input-field flex-1"
+                  <input v-model="javaPath" type="text" class="flex-1 input-field"
                     placeholder="例如: D:\jdk-17" />
-                  <button type="button" @click="selectJavaPath" class="btn-secondary text-sm">
+                  <button type="button" @click="selectJavaPath" class="text-sm btn-secondary">
                     浏览
                   </button>
                 </div>
@@ -339,9 +339,9 @@
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">后端根目录</label>
                 <div class="flex gap-2">
-                  <input v-model="backendRootPath" type="text" class="input-field flex-1"
+                  <input v-model="backendRootPath" type="text" class="flex-1 input-field"
                     placeholder="微服务项目根目录，用于自动扫描微服务" />
-                  <button type="button" @click="selectBackendRootPath" class="btn-secondary text-sm">
+                  <button type="button" @click="selectBackendRootPath" class="text-sm btn-secondary">
                     浏览
                   </button>
                 </div>
@@ -355,9 +355,9 @@
                   type="button"
                   @click="scanMicroservices"
                   :disabled="!backendRootPath || isScanningMaven"
-                  class="btn-secondary flex items-center gap-2 text-sm"
+                  class="flex items-center gap-2 text-sm btn-secondary"
                 >
-                  <div v-if="isScanningMaven" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  <div v-if="isScanningMaven" class="w-4 h-4 border-2 border-current rounded-full border-t-transparent animate-spin"></div>
                   <Search v-else class="w-4 h-4" />
                   {{ isScanningMaven ? '扫描中...' : '扫描微服务' }}
                 </button>
@@ -367,7 +367,7 @@
               </div>
 
               <!-- Maven状态 -->
-              <div v-if="!mavenInstalled" class="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <div v-if="!mavenInstalled" class="flex items-center gap-2 p-3 border rounded-lg bg-yellow-500/10 border-yellow-500/30">
                 <AlertTriangle class="w-4 h-4 text-yellow-500" />
                 <span class="text-sm text-yellow-500">未检测到Maven，请确保已安装Maven并配置环境变量</span>
               </div>
@@ -438,7 +438,7 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   通用部署后命令 <span class="text-[var(--muted-text)]">(可选)</span>
                 </label>
-                <textarea v-model="form.backend.postUploadCommand" class="input-field h-20 resize-none"
+                <textarea v-model="form.backend.postUploadCommand" class="h-20 resize-none input-field"
                   placeholder="所有微服务部署后执行的命令，如服务重启等"></textarea>
               </div>
 
@@ -452,11 +452,11 @@
             </div>
           </div>
 
-          <div class="flex gap-3 pt-4 flex-shrink-0">
-            <button type="button" @click="saveConfig" class="btn-primary flex-1 text-sm">
+          <div class="flex flex-shrink-0 gap-3 pt-4">
+            <button type="button" @click="saveConfig" class="flex-1 text-sm btn-primary">
               {{ isEditing ? '更新配置' : '保存配置' }}
             </button>
-            <button v-if="isEditing" type="button" @click="resetForm" class="btn-secondary text-sm">
+            <button v-if="isEditing" type="button" @click="resetForm" class="text-sm btn-secondary">
               取消
             </button>
           </div>
@@ -465,12 +465,12 @@
     </div>
 
     <!-- 连接测试结果弹窗 -->
-    <div v-if="connectionResult" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    <div v-if="connectionResult" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click="closeConnectionResult">
       <div class="bg-[var(--dialog-bg)] rounded-lg p-6 max-w-md w-full mx-4"
         :class="connectionResult.success ? 'border border-green-500/30' : 'border border-red-500/30'" @click.stop>
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center"
+          <div class="flex items-center justify-center w-10 h-10 rounded-full"
             :class="connectionResult.success ? 'bg-green-500/20' : 'bg-red-500/20'">
             <div class="w-6 h-6 rounded-full" :class="connectionResult.success ? 'bg-green-500' : 'bg-red-500'"></div>
           </div>
@@ -481,7 +481,7 @@
 
         <p class="text-[var(--foreground)] mb-4">{{ connectionResult.message }}</p>
 
-        <div v-if="connectionResult.time" class="flex justify-between items-center mb-4">
+        <div v-if="connectionResult.time" class="flex items-center justify-between mb-4">
           <span class="text-sm text-[var(--muted-text)]">连接耗时</span>
           <span class="text-sm font-medium text-[var(--foreground)]">{{ connectionResult.time }}ms</span>
         </div>
@@ -976,6 +976,10 @@ async function scanMicroservices() {
 }
 
 onMounted(async () => {
+  // 如果有选中的服务器，恢复表单数据
+  if (serverStore.selectedServerId) {
+    await selectServer(serverStore.selectedServerId);
+  }
   await loadServers();
   await checkMavenInstalled();
 });

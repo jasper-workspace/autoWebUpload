@@ -155,25 +155,50 @@
               取消部署
             </button>
 
-            <!-- 后端微服务统一部署进度 -->
-            <div v-if="isDeployingRef && deployType === 'backend' && backendArchitecture === 'microservice'" class="mt-4">
+            <!-- 部署进度（前端 / 后端单体 / 后端微服务通用） -->
+            <div v-if="isDeployingRef" class="mt-4">
               <h3 class="text-sm font-semibold text-[var(--foreground)] mb-2">
                 <span>部署进度</span>
               </h3>
               <div class="mb-2">
                 <div class="flex justify-between text-xs text-[var(--muted-text)] mb-1">
                   <span>
-                    {{ getMsOverallPhaseLabel() }}
+                    {{
+                      isMsDeploy
+                        ? getMsOverallPhaseLabel()
+                        : getSinglePhaseLabel()
+                    }}
                     <Loader2 class="inline w-3 h-3 ml-1 animate-spin" />
                   </span>
-                  <span :class="getMsOverallColor()">
-                    {{ getMsOverallProgress() }}% {{ getMsOverallText() }}
+                  <span
+                    :class="
+                      isMsDeploy ? getMsOverallColor() : getSingleColor()
+                    "
+                  >
+                    {{
+                      isMsDeploy
+                        ? getMsOverallProgress()
+                        : getSingleProgress()
+                    }}% {{
+                      isMsDeploy ? getMsOverallText() : getSingleText()
+                    }}
                   </span>
                 </div>
                 <div class="w-full bg-[var(--card-border)] rounded-full h-2">
-                  <div class="h-2 transition-all duration-300 rounded-full" :class="getMsOverallBarColor()" :style="{
-                    width: getMsOverallProgress() + '%',
-                  }"></div>
+                  <div
+                    class="h-2 transition-all duration-300 rounded-full"
+                    :class="
+                      isMsDeploy
+                        ? getMsOverallBarColor()
+                        : getSingleBarColor()
+                    "
+                    :style="{
+                      width:
+                        (isMsDeploy
+                          ? getMsOverallProgress()
+                          : getSingleProgress()) + '%',
+                    }"
+                  ></div>
                 </div>
               </div>
             </div>
@@ -696,6 +721,84 @@ function getMsOverallText(): string {
 let deployStartTime: number | null = null; // 部署开始时间戳
 let elapsedTimeInterval: NodeJS.Timeout | null = null; // 计时器 ID
 const elapsedSeconds = ref(0); // 经过的秒数
+
+// 是否为后端微服务模式（用于进度条数据源切换）
+const isMsDeploy = computed(
+  () => deployType.value === 'backend' && backendArchitecture.value === 'microservice',
+);
+
+// ==================== 单部署模式（前端 / 后端单体）进度辅助函数 ====================
+
+/**
+ * 获取单部署模式总体进度百分比（0-100）
+ * 优先使用 useDeploy 中的 deployProgress（一键部署的构建/上传/部署阶段进度）
+ * 退化使用 useUploadStore.progress（手动上传文件进度）
+ */
+function getSingleProgress(): number {
+  if (deployProgress.value && typeof deployProgress.value.percentage === 'number') {
+    return Math.min(Math.max(Math.floor(deployProgress.value.percentage), 0), 100);
+  }
+  return Math.min(Math.max(Math.floor(progress.value.percentage || 0), 0), 100);
+}
+
+/**
+ * 获取单部署模式阶段标签
+ */
+function getSinglePhaseLabel(): string {
+  if (deployProgress.value) {
+    const phaseLabels: Record<string, string> = {
+      building: '构建中',
+      uploading: '上传中',
+      deploying: '部署中',
+      completed: '部署完成',
+    };
+    const phase = deployProgress.value.phase;
+    const label = phaseLabels[phase] || deployProgress.value.step || '处理中';
+    if (deployProgress.value.step && phase !== 'completed') {
+      return `${label}: ${deployProgress.value.step}`;
+    }
+    return label;
+  }
+  if (progress.value.status === 'uploading' && progress.value.totalFiles > 0) {
+    return `上传中 (${progress.value.uploadedFiles}/${progress.value.totalFiles})`;
+  }
+  return '准备中...';
+}
+
+/**
+ * 获取单部署模式进度文字颜色
+ */
+function getSingleColor(): string {
+  if (deployProgress.value?.status === 'error') return 'text-red-400';
+  if (
+    deployProgress.value?.status === 'success' ||
+    deployProgress.value?.phase === 'completed'
+  ) {
+    return 'text-green-400';
+  }
+  return 'text-blue-400';
+}
+
+/**
+ * 获取单部署模式进度条颜色
+ */
+function getSingleBarColor(): string {
+  if (deployProgress.value?.status === 'error') return 'bg-red-500';
+  if (
+    deployProgress.value?.status === 'success' ||
+    deployProgress.value?.phase === 'completed'
+  ) {
+    return 'bg-green-500';
+  }
+  return 'bg-blue-500';
+}
+
+/**
+ * 获取单部署模式右侧文本（耗时）
+ */
+function getSingleText(): string {
+  return formatDuration(elapsedSeconds.value);
+}
 
 // 启动部署计时器
 function startDeployTimer() {

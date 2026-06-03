@@ -133,27 +133,58 @@ function migrateServers(servers: any[]): ServerConfig[] {
   return servers.map(server => migrateConfig(server));
 }
 
+// localStorage 键名：保存选中的服务器ID
+const SELECTED_SERVER_ID_STORAGE_KEY = 'autoWebUpload:selectedServerId';
+
+// 从 localStorage 安全读取选中服务器ID
+function readSelectedServerIdFromStorage(): string {
+  if (typeof localStorage === 'undefined') return '';
+  try {
+    return localStorage.getItem(SELECTED_SERVER_ID_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+// 将选中服务器ID 持久化到 localStorage
+function writeSelectedServerIdToStorage(id: string) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (id) {
+      localStorage.setItem(SELECTED_SERVER_ID_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(SELECTED_SERVER_ID_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.error('持久化选中服务器ID失败:', error);
+  }
+}
+
 export const useServerStore = defineStore('server', () => {
   // 服务器列表
   const servers = ref<ServerConfig[]>([]);
-  
-  // 当前选中的服务器ID
-  const selectedServerId = ref<string>('');
-  
+
+  // 当前选中的服务器ID（从 localStorage 恢复，避免切换tab或重启后丢失）
+  const selectedServerId = ref<string>(readSelectedServerIdFromStorage());
+
   // 当前选中的服务器对象（计算属性）
-  const selectedServer = computed(() => 
+  const selectedServer = computed(() =>
     servers.value.find(s => s.id === selectedServerId.value) || null
   );
-  
+
   // 最后更新时间戳，用于检测配置是否需要刷新
   const lastUpdateTime = ref<number>(0);
-  
+
   // 加载服务器列表
   async function loadServers() {
     try {
       const rawConfigs = await window.electronAPI.getConfigs();
       servers.value = migrateServers(rawConfigs);
       lastUpdateTime.value = Date.now();
+      // 校验持久化的选中ID是否仍指向有效服务器，失效则清除
+      if (selectedServerId.value && !servers.value.some(s => s.id === selectedServerId.value)) {
+        clearSelectedServer();
+      }
       console.log('服务器配置已更新，时间戳:', lastUpdateTime.value);
     } catch (error) {
       console.error('加载服务器列表失败:', error);
@@ -216,11 +247,13 @@ export const useServerStore = defineStore('server', () => {
       disconnectAll();
     }
     selectedServerId.value = id;
+    writeSelectedServerIdToStorage(id);
   }
 
   // 清除选中的服务器
   function clearSelectedServer() {
     selectedServerId.value = '';
+    writeSelectedServerIdToStorage('');
   }
 
   // 断开所有连接（终端和日志流）
