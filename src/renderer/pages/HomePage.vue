@@ -369,25 +369,78 @@
 
       <!-- 右侧：操作日志（占8份） -->
       <div class="flex flex-col min-h-0 col-span-1 md:col-span-8">
-        <div class="flex flex-col flex-1 min-h-0 p-5 card">
-          <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-col flex-1 min-h-0 p-4 card">
+          <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-semibold text-[var(--foreground)]">
               操作日志
             </h2>
+            <div class="flex items-center gap-2">
+              <button
+                @click="clearLogs"
+                class="text-xs text-[var(--foreground)] bg-[var(--card-border)] hover:bg-[var(--scrollbar-thumb-hover)] transition-colors px-2 py-1 rounded">
+                清空
+              </button>
+            </div>
+          </div>
+
+          <!-- 日志搜索和过滤 -->
+          <div class="flex items-center gap-2 mb-3">
+            <div class="flex-1 relative">
+              <svg
+                class="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--muted-text)]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                v-model="logSearchKeyword"
+                type="text"
+                placeholder="搜索..."
+                class="w-full text-xs px-7 py-1.5 rounded border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] focus:outline-none focus:border-[var(--input-focus)]" />
+            </div>
+            <select
+              v-model="logFilterType"
+              class="text-xs px-2 py-1.5 rounded border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] focus:outline-none focus:border-[var(--input-focus)]">
+              <option value="all">全部</option>
+              <option value="success">成功</option>
+              <option value="error">错误</option>
+              <option value="warning">警告</option>
+              <option value="info">信息</option>
+            </select>
             <button
-              @click="clearLogs"
-              class="text-sm text-[var(--foreground)] bg-[var(--card-border)] hover:bg-[var(--scrollbar-thumb-hover)] transition-colors px-3 py-1 border border-[var(--card-border)] rounded">
-              清空日志
+              v-if="logSearchKeyword || logFilterType !== 'all'"
+              @click="resetLogFilter"
+              class="text-xs text-[var(--muted-text)] hover:text-[var(--foreground)] px-2 py-1.5 rounded hover:bg-[var(--card-border)] transition-colors">
+              重置
             </button>
+            <button
+              @click="exportLogs"
+              :disabled="filteredLogs.length === 0"
+              class="text-xs text-[var(--foreground)] bg-[var(--card-border)] hover:bg-[var(--scrollbar-thumb-hover)] transition-colors px-2 py-1.5 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+              导出
+            </button>
+          </div>
+
+          <!-- 日志统计 -->
+          <div class="flex gap-3 mb-2 text-xs text-[var(--muted-text)]">
+            <span>共 {{ logs.length }} 条</span>
+            <span v-if="logSearchKeyword || logFilterType !== 'all'">
+              显示 {{ filteredLogs.length }} 条
+            </span>
           </div>
 
           <!-- 日志输出 -->
           <div
             ref="logContainer"
             @scroll="handleScroll"
-            class="bg-[var(--log-bg)] rounded-lg p-4 flex-1 overflow-y-auto font-mono text-xs space-y-1 border border-[var(--card-border)]">
+            class="bg-[var(--log-bg)] rounded-lg p-3 flex-1 overflow-y-auto font-mono text-xs space-y-0.5 border border-[var(--card-border)]">
             <div
-              v-for="(log, index) in logs"
+              v-for="(log, index) in filteredLogs"
               :key="index"
               :class="{
                 'text-green-400': log.type === 'success',
@@ -396,10 +449,10 @@
                 'text-blue-400': log.type === 'info',
                 'text-[var(--foreground)]': !log.type,
               }">
-              [{{ log.time }}] {{ log.message }}
+              [{{ log.time }}] <span v-html="highlightKeyword(log.message)"></span>
             </div>
-            <div v-if="logs.length === 0" class="text-[var(--muted-text)]">
-              暂无日志
+            <div v-if="filteredLogs.length === 0" class="text-[var(--muted-text)]">
+              {{ logs.length === 0 ? '暂无日志' : '没有匹配的日志' }}
             </div>
           </div>
         </div>
@@ -418,7 +471,7 @@ import {
   onActivated,
   watch,
 } from "vue";
-import { Upload, FolderOpen, X, Zap, Package, Loader2 } from "lucide-vue-next";
+import { Upload, FolderOpen, X, Zap, Package, Loader2, Bell } from "lucide-vue-next";
 import { useServerStore } from "../stores/server";
 import { useUploadStore } from "../stores/upload";
 import DropZone from "../components/DropZone.vue";
@@ -556,6 +609,86 @@ const uploading = computed(() => uploadStore.uploading);
 const progress = computed(() => uploadStore.progress);
 const logs = computed(() => uploadStore.logs);
 const logContainer = ref<HTMLElement | null>(null); // 使用本地引用，保持自动滚动
+const logSearchKeyword = ref("");
+const logFilterType = ref("all");
+
+const filteredLogs = computed(() => {
+  let result = logs.value;
+
+  if (logFilterType.value !== "all") {
+    result = result.filter((log) => log.type === logFilterType.value);
+  }
+
+  if (logSearchKeyword.value) {
+    const keyword = logSearchKeyword.value.toLowerCase();
+    result = result.filter(
+      (log) =>
+        log.message.toLowerCase().includes(keyword) ||
+        log.time.toLowerCase().includes(keyword)
+    );
+  }
+
+  return result;
+});
+
+function highlightKeyword(message: string): string {
+  if (!logSearchKeyword.value) {
+    return escapeHtml(message);
+  }
+
+  const keyword = logSearchKeyword.value;
+  const regex = new RegExp(`(${keyword})`, "gi");
+  const escapedMessage = escapeHtml(message);
+  return escapedMessage.replace(
+    regex,
+    '<mark class="bg-yellow-400/30 text-yellow-300 px-0.5 rounded">$1</mark>'
+  );
+}
+
+function escapeHtml(text: string): string {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function resetLogFilter() {
+  logSearchKeyword.value = "";
+  logFilterType.value = "all";
+}
+
+async function exportLogs() {
+  if (filteredLogs.value.length === 0) return;
+
+  const content = filteredLogs.value
+    .map((log) => `[${log.time}] ${log.message}`)
+    .join("\n");
+
+  try {
+    const result = await window.electronAPI.showMessageBox({
+      type: "info",
+      title: "导出日志",
+      message: `即将导出 ${filteredLogs.value.length} 条日志`,
+      buttons: ["确认", "取消"],
+    });
+
+    if (result.response === 0) {
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `deploy-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      addLog("日志导出成功", "success");
+    }
+  } catch (error) {
+    console.error("导出日志失败:", error);
+    addLog("日志导出失败", "error");
+  }
+}
+
 const localPath = computed({
   get: () => uploadStore.localPath,
   set: (value: string) => {
@@ -1361,10 +1494,12 @@ async function handleOneClickDeploy() {
     const result = await startDeploy(selectedServer.value.id, deployType.value);
 
     if (result.success) {
+      const duration = formatDuration(result.totalDuration / 1000);
       addLog(
-        `部署成功！总耗时: ${formatDuration(result.totalDuration / 1000)}`,
+        `部署成功！总耗时: ${duration}`,
         "success",
       );
+      await showDeployNotification(true, deployType.value, duration);
     } else {
       // 强制更新进度状态为失败
       deployProgress.value = {
@@ -1374,6 +1509,7 @@ async function handleOneClickDeploy() {
         status: "error",
       };
       addLog(`部署失败: ${result.error}`, "error");
+      await showDeployNotification(false, deployType.value, "", result.error);
     }
   } catch (error: any) {
     // 强制更新进度状态为失败
@@ -1385,9 +1521,25 @@ async function handleOneClickDeploy() {
     };
     console.error("部署失败:", error);
     addLog(`部署失败: ${error.message || "未知错误"}`, "error");
+    await showDeployNotification(false, deployType.value, "", error.message);
   } finally {
     // 停止部署计时器
     stopDeployTimer();
+  }
+}
+
+// 显示部署完成通知
+async function showDeployNotification(success: boolean, deployType: string, duration?: string, error?: string) {
+  try {
+    const title = success ? '部署成功' : '部署失败';
+    const deployTypeName = deployType === "frontend" ? "前端" : "后端";
+    let body = success 
+      ? `${deployTypeName}部署成功，耗时 ${duration}`
+      : `${deployTypeName}部署失败: ${error || '未知错误'}`;
+    
+    await window.electronAPI.showNotification({ title, body });
+  } catch (error) {
+    console.error('显示通知失败:', error);
   }
 }
 
@@ -1481,20 +1633,28 @@ async function handleDeployAll() {
     ]);
 
     if (result) {
+      const duration = formatDuration(result.totalDuration / 1000);
       if (result.success) {
         addLog(
-          `部署成功！成功: ${result.successCount}，失败: ${result.failedCount}，总耗时: ${formatDuration(result.totalDuration / 1000)}`,
+          `部署成功！成功: ${result.successCount}，失败: ${result.failedCount}，总耗时: ${duration}`,
           "success",
         );
+        await showDeployNotification(true, "backend", duration);
       } else {
         addLog(
           `部署完成。成功: ${result.successCount}，失败: ${result.failedCount}`,
           result.failedCount > 0 ? "warning" : "success",
         );
+        if (result.failedCount > 0) {
+          await showDeployNotification(false, "backend", duration, `${result.failedCount}个微服务部署失败`);
+        } else {
+          await showDeployNotification(true, "backend", duration);
+        }
       }
     }
   } catch (error: any) {
     addLog(`部署失败: ${error.message || "未知错误"}`, "error");
+    await showDeployNotification(false, "backend", "", error.message);
   } finally {
     // 停止部署计时器
     stopDeployTimer();

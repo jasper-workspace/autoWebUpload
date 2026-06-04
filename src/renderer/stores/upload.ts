@@ -32,6 +32,9 @@ export const useUploadStore = defineStore('upload', () => {
   
   // 进度日志索引
   const progressLogIndex = ref<number | null>(null);
+  
+  // 文件上传进度日志索引（用于更新而不是添加新日志）
+  const fileUploadLogIndex = ref<number | null>(null);
 
   // 添加日志
   function addLog(message: string, type?: string) {
@@ -81,6 +84,7 @@ export const useUploadStore = defineStore('upload', () => {
         }
         addLog(`上传成功: ${data.message || '文件上传完成'}`, "success");
         progressLogIndex.value = null;
+        fileUploadLogIndex.value = null; // 重置文件上传日志索引
         if (uploadConfig?.postUploadCommand) {
           addLog(`执行命令: ${uploadConfig.postUploadCommand}`, "info");
         }
@@ -90,6 +94,7 @@ export const useUploadStore = defineStore('upload', () => {
         }
         addLog(`上传失败: ${data.message || '未知错误'}`, "error");
         progressLogIndex.value = null;
+        fileUploadLogIndex.value = null; // 重置文件上传日志索引
       } else if (data.status === "uploading" && data.percentage !== undefined) {
         const loadingBar =
           "█".repeat(Math.floor(data.percentage / 5)) +
@@ -120,9 +125,29 @@ export const useUploadStore = defineStore('upload', () => {
           logs.value[progressLogIndex.value] = { time, message, type: "info" };
         }
       } else if (data.status === "progress") {
-        // 可以在这里添加更详细的进度日志
+        // 处理文件上传进度，更新而不是添加新日志，避免界面闪烁
         if (data.currentFile && data.progress !== undefined) {
-          addLog(`正在上传: ${data.currentFile} (${Math.round(data.progress)}%)`, "info");
+          // 对超长文件路径进行截断处理，只显示文件名（最后一个斜杠后的内容）
+          const fileName = data.currentFile.split(/[\\/]/).pop() || data.currentFile;
+          // 如果文件名仍然很长，截断到最多50个字符
+          const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
+          
+          const now = new Date();
+          const time = `${now.getHours().toString().padStart(2, "0")}:${now
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+          
+          const message = `正在上传: ${displayName} (${Math.round(data.progress)}%)`;
+          
+          if (fileUploadLogIndex.value === null) {
+            // 第一次添加文件上传进度日志
+            logs.value.push({ time, message, type: "info" });
+            fileUploadLogIndex.value = logs.value.length - 1;
+          } else {
+            // 更新现有的文件上传进度日志，避免添加过多日志导致闪烁
+            logs.value[fileUploadLogIndex.value] = { time, message, type: "info" };
+          }
         }
       }
     } else if (data.message) {

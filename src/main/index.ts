@@ -98,6 +98,12 @@ app.whenReady().then(() => {
     logDir 
   });
   
+  // Windows Toast 通知需要设置应用 ID
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.autowebupload.app');
+    logger.info('已设置 Windows 应用 ID');
+  }
+  
   setupIpcHandlers();
   createWindow();
 

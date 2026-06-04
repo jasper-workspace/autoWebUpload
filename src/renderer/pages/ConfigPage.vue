@@ -12,6 +12,47 @@
           <Upload class="w-4 h-4" />
           导出
         </button>
+        <button @click="toggleTemplateDropdown" class="btn-secondary flex items-center gap-2 px-3 py-1.5 text-sm relative">
+          <Layers class="w-4 h-4" />
+          模板
+          <svg
+            class="w-4 h-4 text-[var(--muted-text)]"
+            :class="{ 'rotate-180': templateDropdownOpen }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+          <!-- 模板下拉菜单 -->
+          <div
+            v-if="templateDropdownOpen"
+            class="absolute right-0 top-full mt-1 bg-[var(--dialog-bg)] border border-[var(--card-border)] rounded-lg shadow-lg z-50 w-48">
+            <div class="p-2 border-b border-[var(--card-border)]">
+              <button
+                @click="saveAsTemplate"
+                :disabled="!form.name"
+                class="w-full text-left px-2 py-1.5 text-sm hover:bg-[var(--card-border)] rounded disabled:opacity-50 disabled:cursor-not-allowed">
+                <Save class="w-4 h-4 inline mr-2" />
+                保存为模板
+              </button>
+            </div>
+            <div class="max-h-48 overflow-y-auto">
+              <div v-if="templates.length === 0" class="px-2 py-4 text-sm text-[var(--muted-text)] text-center">
+                暂无模板
+              </div>
+              <button
+                v-for="template in templates"
+                :key="template.id"
+                @click="loadTemplate(template.id)"
+                class="w-full text-left px-2 py-1.5 text-sm hover:bg-[var(--card-border)] rounded flex items-center justify-between">
+                <span>{{ template.name }}</span>
+                <button @click.stop="deleteTemplate(template.id)" class="p-1 hover:bg-red-500/20 rounded">
+                  <Trash2 class="w-3 h-3 text-red-400" />
+                </button>
+              </button>
+            </div>
+          </div>
+        </button>
         <button @click="addNewServer" class="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
           <Plus class="w-4 h-4" />
           添加服务器
@@ -508,7 +549,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { Plus, Trash2, Server, Eye, EyeOff, Wifi, Download, Upload, Package, Cpu, AlertTriangle, Search } from 'lucide-vue-next';
+import { Plus, Trash2, Server, Eye, EyeOff, Wifi, Download, Upload, Package, Cpu, AlertTriangle, Search, Layers, Save } from 'lucide-vue-next';
 import { showSuccess, showError } from '../utils/notification';
 import type { ServerConfig, DeployTargetConfig, BuildConfig, ConnectionTestResult, MicroserviceConfig, BackendConfig } from '../../shared/types';
 import { useServerStore } from '../stores/server';
@@ -523,6 +564,108 @@ const scannedMicroservices = ref<MicroserviceConfig[]>([]);
 const microserviceCount = computed(() => scannedMicroservices.value.length);
 const mavenPath = ref('');
 const javaPath = ref('');
+
+// 模板管理相关状态
+interface TemplateConfig {
+  id: string;
+  name: string;
+  description?: string;
+  config: Partial<ServerConfig>;
+  createdAt: number;
+}
+const templateDropdownOpen = ref(false);
+const templates = ref<TemplateConfig[]>([]);
+
+// 加载模板列表
+function loadTemplates() {
+  const stored = localStorage.getItem('deploy-templates');
+  if (stored) {
+    try {
+      templates.value = JSON.parse(stored);
+    } catch {
+      templates.value = [];
+    }
+  }
+}
+
+// 保存模板列表
+function saveTemplates() {
+  localStorage.setItem('deploy-templates', JSON.stringify(templates.value));
+}
+
+// 切换模板下拉菜单
+function toggleTemplateDropdown() {
+  templateDropdownOpen.value = !templateDropdownOpen.value;
+  if (templateDropdownOpen.value) {
+    loadTemplates();
+    document.addEventListener('click', closeTemplateDropdown);
+  }
+}
+
+// 关闭模板下拉菜单
+function closeTemplateDropdown(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.relative')) {
+    templateDropdownOpen.value = false;
+    document.removeEventListener('click', closeTemplateDropdown);
+  }
+}
+
+// 保存为模板
+async function saveAsTemplate() {
+  if (!form.name) return;
+
+  const templateName = form.name + ' (模板)';
+  
+  // 检查是否已存在同名模板
+  if (templates.value.some(t => t.name === templateName)) {
+    showError('保存失败', '已存在同名模板');
+    return;
+  }
+
+  const template: TemplateConfig = {
+    id: Date.now().toString(),
+    name: templateName,
+    config: {
+      frontend: form.frontend,
+      backend: form.backend,
+      retryCount: form.retryCount,
+    },
+    createdAt: Date.now()
+  };
+
+  templates.value.push(template);
+  saveTemplates();
+  templateDropdownOpen.value = false;
+  showSuccess('保存成功', '模板保存成功');
+}
+
+// 加载模板
+function loadTemplate(templateId: string) {
+  const template = templates.value.find(t => t.id === templateId);
+  if (!template) return;
+
+  if (template.config.frontend) {
+    form.frontend = { ...template.config.frontend, buildConfig: template.config.frontend.buildConfig || createDefaultBuildConfig('frontend') };
+  }
+  if (template.config.backend) {
+    form.backend = { ...template.config.backend, buildConfig: template.config.backend.buildConfig || createDefaultBuildConfig('backend') };
+  }
+  if (template.config.retryCount !== undefined) {
+    form.retryCount = template.config.retryCount;
+  }
+
+  templateDropdownOpen.value = false;
+  showSuccess('加载成功', '模板已应用');
+}
+
+// 删除模板
+function deleteTemplate(templateId: string) {
+  if (!confirm('确定要删除这个模板吗？')) return;
+
+  templates.value = templates.value.filter(t => t.id !== templateId);
+  saveTemplates();
+}
 
 // 全选/取消全选
 const allMicroservicesSelected = computed(() =>

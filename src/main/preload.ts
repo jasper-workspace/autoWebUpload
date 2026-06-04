@@ -13,6 +13,7 @@ const api = {
 
   // SFTP 相关
   testConnection: (config: any) => ipcRenderer.invoke('test-connection', config),
+  validateServer: (config: any) => ipcRenderer.invoke('validate-server', config),
   uploadFolder: (config: any, localPath: string) => ipcRenderer.invoke('upload-folder', config, localPath),
   cancelUpload: () => ipcRenderer.invoke('cancel-upload'),
 
@@ -54,6 +55,10 @@ const api = {
   // 显示消息框
   showMessageBox: (options: { type: string; title: string; message: string; buttons: string[] }) => 
     ipcRenderer.invoke('show-message-box', options),
+
+  // 显示桌面通知
+  showNotification: (options: { title: string; body: string; icon?: string }) =>
+    ipcRenderer.invoke('show-notification', options),
 
   // 更新相关
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

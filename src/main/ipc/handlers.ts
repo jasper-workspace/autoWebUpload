@@ -13,6 +13,7 @@ import { DeployOrchestrator } from '../services/deployOrchestrator';
 import { microserviceScanner } from '../services/microserviceScanner';
 import { mavenExecutor } from '../services/mavenExecutor';
 import { multiMicroserviceOrchestrator } from '../services/multiMicroserviceOrchestrator';
+import { ServerValidator } from '../services/serverValidator';
 import { createLogger } from '../logger';
 import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig, MicroserviceConfig, MicroserviceBuildProgress } from '../../shared/types';
 
@@ -400,6 +401,20 @@ export function setupIpcHandlers() {
     }
   });
 
+  // 验证服务器（连接 + 磁盘空间 + 路径检查）
+  ipcMain.handle('validate-server', async (_, config: ServerConfig) => {
+    const validator = new ServerValidator();
+    try {
+      const result = await validator.validateServer(config);
+      return result;
+    } catch (error: any) {
+      return {
+        success: false,
+        connection: { success: false, message: error.message || '验证失败' }
+      };
+    }
+  });
+
   // 上传文件夹
   ipcMain.handle('upload-folder', async (event, config: ServerConfig, localPath: string) => {
     if (isUploading) {
@@ -628,6 +643,75 @@ export function setupIpcHandlers() {
     });
 
     return result;
+  });
+
+  // 显示桌面通知（使用系统托盘气泡通知）
+  ipcMain.handle('show-notification', async (_, options: { title: string; body: string; icon?: string }) => {
+    try {
+      // 检查是否支持通知
+      if (!app.isReady()) {
+        await app.whenReady();
+      }
+
+      // 获取图标路径（兼容开发和打包后的路径）
+      let iconPath = options.icon;
+      if (!iconPath) {
+        const possiblePaths = [
+          path.join(__dirname, '../../favicon.png'),
+          path.join(__dirname, '../favicon.png'),
+          path.join(app.getAppPath(), 'favicon.png'),
+          path.join(__dirname, 'favicon.png'),
+          path.join(process.cwd(), 'favicon.png')
+        ];
+        
+        for (const p of possiblePaths) {
+          if (fs.existsSync(p)) {
+            iconPath = p;
+            break;
+          }
+        }
+      }
+
+      logger.info(`显示系统通知: ${options.title} - ${options.body}, 图标路径: ${iconPath}`);
+
+      // 使用系统托盘显示通知（在 Windows 上更可靠）
+      const { Tray, Menu } = await import('electron');
+      
+      // 创建一个临时托盘图标
+      const tray = new Tray(iconPath || path.join(__dirname, '../../favicon.png'));
+      
+      // 设置托盘菜单（空菜单）
+      tray.setContextMenu(Menu.buildFromTemplate([]));
+      
+      // 在 Windows 上使用 showBalloon 显示气泡通知
+      if (process.platform === 'win32') {
+        tray.displayBalloon({
+          title: options.title,
+          content: options.body,
+          icon: iconPath || undefined
+        });
+      } else {
+        // macOS 使用 Notification API
+        const notification = new Notification({
+          title: options.title,
+          body: options.body,
+          icon: iconPath
+        });
+        notification.show();
+      }
+
+      // 3秒后移除托盘图标
+      setTimeout(() => {
+        tray.destroy();
+      }, 3000);
+
+      logger.info('系统通知已触发');
+      return { success: true, type: 'tray' };
+      
+    } catch (error: any) {
+      logger.error('显示系统通知失败', error);
+      return { success: false, error: error.message };
+    }
   });
 
   // 检查更新

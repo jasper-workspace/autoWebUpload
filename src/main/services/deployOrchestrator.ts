@@ -164,7 +164,10 @@ export class DeployOrchestrator {
         localPath,
         remotePath,
         (progress) => {
-          this.reportDeployProgress('uploading', `正在上传: ${progress.currentFile}`, progress.percentage, 'building');
+          // 对文件路径进行截断处理，只显示文件名
+          const fileName = progress.currentFile ? progress.currentFile.split(/[\\/]/).pop() || progress.currentFile : '';
+          const displayName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
+          this.reportDeployProgress('uploading', `正在上传: ${displayName}`, progress.percentage, 'building');
         }
       ).then(() => resolve()).catch(reject);
     });
