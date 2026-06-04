@@ -60,7 +60,7 @@ export class DeployOrchestrator {
 
     if (!buildResult.success) {
       if (buildConfig.stopOnBuildFailure) {
-        result.error = `构建失败: ${buildResult.error}`;
+        result.error = buildResult.error; // 去掉前缀，前端会加"一键部署失败:"
         result.totalDuration = Date.now() - startTime;
         this.reportDeployProgress('building', '构建失败', 0, 'error');
         return result;
@@ -164,7 +164,7 @@ export class DeployOrchestrator {
         localPath,
         remotePath,
         (progress) => {
-          this.reportDeployProgress('uploading', `上传中: ${progress.currentFile}`, progress.percentage, 'building');
+          this.reportDeployProgress('uploading', `正在上传: ${progress.currentFile}`, progress.percentage, 'building');
         }
       ).then(() => resolve()).catch(reject);
     });

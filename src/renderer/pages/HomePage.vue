@@ -11,11 +11,19 @@
             </h2>
             <div class="flex gap-3 mt-2">
               <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="deployType" type="radio" value="frontend" class="accent-[#409EFF]" />
+                <input
+                  v-model="deployType"
+                  type="radio"
+                  value="frontend"
+                  class="accent-[#409EFF]" />
                 <span class="text-[var(--foreground)]">前端</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="deployType" type="radio" value="backend" class="accent-[#409EFF]" />
+                <input
+                  v-model="deployType"
+                  type="radio"
+                  value="backend"
+                  class="accent-[#409EFF]" />
                 <span class="text-[var(--foreground)]">后端</span>
               </label>
             </div>
@@ -28,128 +36,187 @@
             </h2>
             <div class="flex gap-3 mt-2">
               <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="backendArchitecture" type="radio" value="microservice" class="accent-[#409EFF]" />
+                <input
+                  v-model="backendArchitecture"
+                  type="radio"
+                  value="microservice"
+                  class="accent-[#409EFF]" />
                 <span class="text-[var(--foreground)]">微服务</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="backendArchitecture" type="radio" value="single" class="accent-[#409EFF]" />
+                <input
+                  v-model="backendArchitecture"
+                  type="radio"
+                  value="single"
+                  class="accent-[#409EFF]" />
                 <span class="text-[var(--foreground)]">单体</span>
               </label>
             </div>
           </div>
 
-          <!-- 一键部署按钮 -->
+          <!-- 部署按钮 -->
           <div v-if="canOneClickDeploy" class="mb-4">
             <!-- 后端微服务部署面板（当选择后端+微服务架构时显示） -->
-            <div v-if="
-              deployType === 'backend' &&
-              backendArchitecture === 'microservice'
-            " class="backend-deploy-panel">
+            <div
+              v-if="
+                deployType === 'backend' &&
+                backendArchitecture === 'microservice'
+              "
+              class="backend-deploy-panel">
               <!-- 微服务列表 - 自定义多选下拉 -->
               <div class="relative mb-3 ms-dropdown-container">
                 <label class="block text-xs text-[var(--muted-text)] mb-2">
                   微服务
-                  <span class="text-[10px]">({{ enabledMicroserviceCount }}/{{
-                    enabledMicroservicesList.length
-                  }})</span>
+                  <span class="text-[10px]"
+                    >({{ enabledMicroserviceCount }}/{{
+                      enabledMicroservicesList.length
+                    }})</span
+                  >
                 </label>
-                <div @click="toggleMsDropdown"
+                <div
+                  @click="toggleMsDropdown"
                   class="input-field text-sm w-full min-h-[38px] flex items-center justify-between cursor-pointer">
-                  <span class="text-[var(--muted-text)]" v-if="enabledMicroserviceCount === 0">请选择微服务...</span>
+                  <span
+                    class="text-[var(--muted-text)]"
+                    v-if="enabledMicroserviceCount === 0"
+                    >请选择微服务...</span
+                  >
                   <span v-else class="truncate">{{
                     getSelectedMsNames()
                   }}</span>
-                  <svg class="w-4 h-4 text-[var(--muted-text)]" :class="{ 'rotate-180': msDropdownOpen }" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="w-4 h-4 text-[var(--muted-text)]"
+                    :class="{ 'rotate-180': msDropdownOpen }"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
                 <!-- 下拉选项 -->
-                <div v-if="msDropdownOpen"
+                <div
+                  v-if="msDropdownOpen"
                   class="absolute z-50 w-full mt-1 bg-[var(--dialog-bg)] border border-[var(--card-border)] rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   <!-- 全选/全不选 -->
-                  <div class="flex items-center justify-between px-3 py-2 border-b border-[var(--card-border)]">
-                    <label class="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" :checked="selectedMicroserviceIds.length ===
-                        enabledMicroservicesList.length &&
-                        enabledMicroservicesList.length > 0
-                        " :indeterminate="selectedMicroserviceIds.length > 0 &&
+                  <div
+                    class="flex items-center justify-between px-3 py-2 border-b border-[var(--card-border)]">
+                    <label
+                      class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        :checked="
+                          selectedMicroserviceIds.length ===
+                            enabledMicroservicesList.length &&
+                          enabledMicroservicesList.length > 0
+                        "
+                        :indeterminate="
+                          selectedMicroserviceIds.length > 0 &&
                           selectedMicroserviceIds.length <
-                          enabledMicroservicesList.length
-                          " @change="toggleSelectAll" class="accent-[#409EFF]" />
+                            enabledMicroservicesList.length
+                        "
+                        @change="toggleSelectAll"
+                        class="accent-[#409EFF]" />
                       <span>全选</span>
                     </label>
-                    <button v-if="selectedMicroserviceIds.length > 0" @click="clearAllSelection"
+                    <button
+                      v-if="selectedMicroserviceIds.length > 0"
+                      @click="clearAllSelection"
                       class="text-xs text-[#409EFF] hover:text-[#409EFF]/80">
                       清空
                     </button>
                   </div>
                   <!-- 微服务列表 -->
-                  <label v-for="ms in enabledMicroservicesList" :key="ms.id"
+                  <label
+                    v-for="ms in enabledMicroservicesList"
+                    :key="ms.id"
                     class="flex items-center gap-2 px-3 py-2 hover:bg-[var(--card-border)] cursor-pointer text-sm">
-                    <input type="checkbox" :checked="selectedMicroserviceIds.includes(ms.id)"
-                      @change="toggleMsSelection(ms.id)" class="accent-[#409EFF]" />
+                    <input
+                      type="checkbox"
+                      :checked="selectedMicroserviceIds.includes(ms.id)"
+                      @change="toggleMsSelection(ms.id)"
+                      class="accent-[#409EFF]" />
                     <span>{{ ms.name }} ({{ ms.artifactId }})</span>
                   </label>
                 </div>
               </div>
 
               <!-- 微服务统计 -->
-              <div class="flex justify-between items-center text-xs text-[var(--muted-text)] mb-3">
-                <span>已选: {{ enabledMicroserviceCount }} /
-                  {{ enabledMicroservicesList.length }}</span>
+              <div
+                class="flex justify-between items-center text-xs text-[var(--muted-text)] mb-3">
+                <span
+                  >已选: {{ enabledMicroserviceCount }} /
+                  {{ enabledMicroservicesList.length }}</span
+                >
                 <span>jar包来源: target/ 目录</span>
               </div>
 
-              <!-- 一键部署全部按钮 -->
-              <button @click="handleDeployAll" :disabled="isDeployingRef || enabledMicroserviceCount === 0"
-                class="w-full btn-oneclick" :class="isDeployingRef ? 'deploying' : ''">
+              <!-- 部署全部按钮 -->
+              <button
+                @click="handleDeployAll"
+                :disabled="isDeployingRef || enabledMicroserviceCount === 0"
+                class="w-full btn-oneclick"
+                :class="isDeployingRef ? 'deploying' : ''">
                 <Zap class="w-5 h-5" />
                 <span class="btn-text">
                   {{
                     isDeployingRef
                       ? "部署中..."
-                      : `一键部署 (${enabledMicroserviceCount})`
+                      : `部署 (${enabledMicroserviceCount})`
                   }}
                 </span>
               </button>
-
             </div>
 
-            <!-- 后端单体一键部署按钮（当选择后端+单体架构时显示） -->
-            <div v-else-if="
-              deployType === 'backend' && backendArchitecture === 'single'
-            " class="backend-single-deploy-panel">
-              <div class="flex items-center gap-2 mb-3 text-xs text-[var(--muted-text)]">
+            <!-- 后端单体部署按钮（当选择后端+单体架构时显示） -->
+            <div
+              v-else-if="
+                deployType === 'backend' && backendArchitecture === 'single'
+              "
+              class="backend-single-deploy-panel">
+              <div
+                class="flex items-center gap-2 mb-3 text-xs text-[var(--muted-text)]">
                 <Package class="w-4 h-4" />
                 <span>单项目部署模式</span>
               </div>
 
-              <!-- 一键部署按钮 -->
-              <button @click="handleOneClickDeploy" :disabled="isDeployingRef || !selectedServer"
-                class="w-full btn-oneclick" :class="isDeployingRef ? 'deploying' : ''">
+              <!-- 部署按钮 -->
+              <button
+                @click="handleOneClickDeploy"
+                :disabled="isDeployingRef || !selectedServer"
+                class="w-full btn-oneclick"
+                :class="isDeployingRef ? 'deploying' : ''">
                 <Zap class="w-5 h-5" />
                 <span class="btn-text">
-                  {{ isDeployingRef ? "部署中" : "一键部署后端" }}
+                  {{ isDeployingRef ? "部署中" : "部署后端" }}
                 </span>
               </button>
             </div>
 
-            <!-- 前端一键部署按钮 -->
-            <button v-else @click="handleOneClickDeploy" :disabled="isDeployingRef || !selectedServer"
-              class="w-full btn-oneclick" :class="isDeployingRef ? 'deploying' : ''">
+            <!-- 前端部署按钮 -->
+            <button
+              v-else
+              @click="handleOneClickDeploy"
+              :disabled="isDeployingRef || !selectedServer"
+              class="w-full btn-oneclick"
+              :class="isDeployingRef ? 'deploying' : ''">
               <Zap class="w-5 h-5" />
               <span class="btn-text">
                 {{
                   isDeployingRef
                     ? `${deployType === "frontend" ? "前端" : "后端"}部署中`
-                    : `一键部署${deployType === "frontend" ? "前端" : "后端"}`
+                    : `部署${deployType === "frontend" ? "前端" : "后端"}`
                 }}
               </span>
             </button>
 
             <!-- 取消部署按钮 -->
-            <button v-if="isDeployingRef" @click="handleCancelDeploy"
+            <button
+              v-if="isDeployingRef"
+              @click="handleCancelDeploy"
               class="flex items-center justify-center w-full gap-2 mt-4 text-sm btn-danger">
               <X class="w-4 h-4" />
               取消部署
@@ -161,7 +228,8 @@
                 <span>部署进度</span>
               </h3>
               <div class="mb-2">
-                <div class="flex justify-between text-xs text-[var(--muted-text)] mb-1">
+                <div
+                  class="flex justify-between text-xs text-[var(--muted-text)] mb-1">
                   <span>
                     {{
                       isMsDeploy
@@ -173,32 +241,24 @@
                   <span
                     :class="
                       isMsDeploy ? getMsOverallColor() : getSingleColor()
-                    "
-                  >
+                    ">
                     {{
-                      isMsDeploy
-                        ? getMsOverallProgress()
-                        : getSingleProgress()
-                    }}% {{
-                      isMsDeploy ? getMsOverallText() : getSingleText()
-                    }}
+                      isMsDeploy ? getMsOverallProgress() : getSingleProgress()
+                    }}% {{ isMsDeploy ? getMsOverallText() : getSingleText() }}
                   </span>
                 </div>
                 <div class="w-full bg-[var(--card-border)] rounded-full h-2">
                   <div
                     class="h-2 transition-all duration-300 rounded-full"
                     :class="
-                      isMsDeploy
-                        ? getMsOverallBarColor()
-                        : getSingleBarColor()
+                      isMsDeploy ? getMsOverallBarColor() : getSingleBarColor()
                     "
                     :style="{
                       width:
                         (isMsDeploy
                           ? getMsOverallProgress()
                           : getSingleProgress()) + '%',
-                    }"
-                  ></div>
+                    }"></div>
                 </div>
               </div>
             </div>
@@ -207,7 +267,10 @@
           <!-- 手动上传选项（可折叠） -->
           <div class="mb-4">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input v-model="showManualUpload" type="checkbox" class="accent-[#409EFF]" />
+              <input
+                v-model="showManualUpload"
+                type="checkbox"
+                class="accent-[#409EFF]" />
               <span class="text-sm text-[var(--foreground)]">手动上传</span>
             </label>
           </div>
@@ -215,14 +278,19 @@
           <!-- 手动上传折叠区域 -->
           <div v-show="showManualUpload" class="collapse-section">
             <!-- 后端微服务模式下：选择要上传的微服务 -->
-            <div v-if="
-              deployType === 'backend' &&
-              backendArchitecture === 'microservice'
-            " class="mb-4">
+            <div
+              v-if="
+                deployType === 'backend' &&
+                backendArchitecture === 'microservice'
+              "
+              class="mb-4">
               <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
                 选择微服务
               </h2>
-              <select v-model="selectedUploadMicroserviceId" class="w-full input-field" :disabled="uploading">
+              <select
+                v-model="selectedUploadMicroserviceId"
+                class="w-full input-field"
+                :disabled="uploading">
                 <option value="">-- 选择微服务 --</option>
                 <option v-for="ms in microservices" :key="ms.id" :value="ms.id">
                   {{ ms.name }} ({{ ms.artifactId }})
@@ -235,20 +303,28 @@
               <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
                 远程目标路径
               </h2>
-              <input v-model="remotePath" :disabled="true" type="text" class="w-full input-field" :placeholder="deployType === 'backend' &&
+              <input
+                v-model="remotePath"
+                :disabled="true"
+                type="text"
+                class="w-full input-field"
+                :placeholder="
+                  deployType === 'backend' &&
                   backendArchitecture === 'microservice' &&
                   !selectedUploadMicroserviceId
-                  ? '请先选择微服务'
-                  : '选择服务器后自动填写'
+                    ? '请先选择微服务'
+                    : '选择服务器后自动填写'
                 " />
             </div>
 
             <!-- 显示所选微服务的上传后命令 -->
-            <div v-if="
-              deployType === 'backend' &&
-              backendArchitecture === 'microservice' &&
-              selectedUploadMicroserviceId
-            " class="mb-4">
+            <div
+              v-if="
+                deployType === 'backend' &&
+                backendArchitecture === 'microservice' &&
+                selectedUploadMicroserviceId
+              "
+              class="mb-4">
               <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
                 上传后命令
               </h2>
@@ -263,18 +339,25 @@
               <h2 class="text-sm mb-4 font-semibold text-[var(--foreground)]">
                 本地文件夹
               </h2>
-              <DropZone v-model="localPath" :disabled="uploading" :deployType="deployType"
+              <DropZone
+                v-model="localPath"
+                :disabled="uploading"
+                :deployType="deployType"
                 @folder-error="handleFolderError" />
             </div>
 
             <!-- 操作按钮 -->
             <div class="flex flex-col gap-3">
-              <button @click="startUpload" :disabled="!canUpload"
+              <button
+                @click="startUpload"
+                :disabled="!canUpload"
                 class="flex items-center justify-center w-full gap-2 text-sm btn-primary">
                 <Upload class="w-4 h-4" />
                 {{ uploading ? "上传中..." : "开始上传" }}
               </button>
-              <button v-if="uploading" @click="cancelUpload"
+              <button
+                v-if="uploading"
+                @click="cancelUpload"
                 class="flex items-center justify-center w-full gap-2 text-sm btn-danger">
                 <X class="w-4 h-4" />
                 取消
@@ -291,22 +374,28 @@
             <h2 class="text-sm font-semibold text-[var(--foreground)]">
               操作日志
             </h2>
-            <button @click="clearLogs"
+            <button
+              @click="clearLogs"
               class="text-sm text-[var(--foreground)] bg-[var(--card-border)] hover:bg-[var(--scrollbar-thumb-hover)] transition-colors px-3 py-1 border border-[var(--card-border)] rounded">
               清空日志
             </button>
           </div>
 
           <!-- 日志输出 -->
-          <div ref="logContainer" @scroll="handleScroll"
+          <div
+            ref="logContainer"
+            @scroll="handleScroll"
             class="bg-[var(--log-bg)] rounded-lg p-4 flex-1 overflow-y-auto font-mono text-xs space-y-1 border border-[var(--card-border)]">
-            <div v-for="(log, index) in logs" :key="index" :class="{
-              'text-green-400': log.type === 'success',
-              'text-red-400': log.type === 'error',
-              'text-yellow-400': log.type === 'warning',
-              'text-blue-400': log.type === 'info',
-              'text-[var(--foreground)]': !log.type,
-            }">
+            <div
+              v-for="(log, index) in logs"
+              :key="index"
+              :class="{
+                'text-green-400': log.type === 'success',
+                'text-red-400': log.type === 'error',
+                'text-yellow-400': log.type === 'warning',
+                'text-blue-400': log.type === 'info',
+                'text-[var(--foreground)]': !log.type,
+              }">
               [{{ log.time }}] {{ log.message }}
             </div>
             <div v-if="logs.length === 0" class="text-[var(--muted-text)]">
@@ -347,7 +436,7 @@ import type { BuildProgress } from "../../shared/types";
 const serverStore = useServerStore();
 const uploadStore = useUploadStore();
 
-// 一键部署
+// 部署
 const {
   isDeploying: deployIsDeploying,
   deployProgress,
@@ -490,7 +579,7 @@ const currentDeployConfig = computed(() => {
     : selectedServer.value.backend;
 });
 
-// 一键部署是否可用（根据架构模式判断）
+// 部署是否可用（根据架构模式判断）
 const canOneClickDeploy = computed(() => {
   // 必须先选中服务器
   if (!selectedServer.value) return false;
@@ -522,7 +611,7 @@ watch(msDropdownOpen, (isOpen) => {
   }
 });
 
-// 监听部署类型切换，重置手动上传选项，再根据一键部署能力控制
+// 监听部署类型切换，重置手动上传选项，再根据部署能力控制
 watch(
   deployType,
   (type) => {
@@ -614,12 +703,12 @@ function getMsOverallProgress(): number {
   const total = progresses.length;
   let completed = 0;
   let failed = 0;
-  let currentPhase: string = 'pending';
+  let currentPhase: string = "pending";
 
   for (const p of progresses) {
-    if (p?.phase === 'completed') completed++;
-    else if (p?.phase === 'error') failed++;
-    else currentPhase = p?.phase || 'pending';
+    if (p?.phase === "completed") completed++;
+    else if (p?.phase === "error") failed++;
+    else currentPhase = p?.phase || "pending";
   }
 
   // 计算总体进度
@@ -635,14 +724,15 @@ function getMsOverallProgress(): number {
   }
 
   if (completed === total) return 100;
-  if (currentPhase === 'pending') return 0;
+  if (currentPhase === "pending") return 0;
 
   const basePercent = (completed / total) * 100;
-  const phaseBonus = {
-    building: 10,
-    uploading: 50,
-    deploying: 80,
-  }[currentPhase] || 0;
+  const phaseBonus =
+    {
+      building: 10,
+      uploading: 50,
+      deploying: 80,
+    }[currentPhase] || 0;
 
   return Math.min(Math.floor(basePercent + phaseBonus), 99);
 }
@@ -652,20 +742,20 @@ function getMsOverallProgress(): number {
  */
 function getMsOverallPhaseLabel(): string {
   const progresses = Object.values(buildProgressMap);
-  if (progresses.length === 0) return '准备中...';
+  if (progresses.length === 0) return "准备中...";
 
   const total = progresses.length;
   let completed = 0;
   let failed = 0;
-  let currentMsName = '';
-  let currentPhase: string = 'pending';
+  let currentMsName = "";
+  let currentPhase: string = "pending";
 
   for (const p of progresses) {
-    if (p?.phase === 'completed') completed++;
-    else if (p?.phase === 'error') failed++;
+    if (p?.phase === "completed") completed++;
+    else if (p?.phase === "error") failed++;
     else {
-      currentPhase = p?.phase || 'pending';
-      currentMsName = p?.microserviceName || '';
+      currentPhase = p?.phase || "pending";
+      currentMsName = p?.microserviceName || "";
     }
   }
 
@@ -677,11 +767,11 @@ function getMsOverallPhaseLabel(): string {
   }
 
   const phaseLabels: Record<string, string> = {
-    building: '构建中',
-    uploading: '上传中',
-    deploying: '部署中',
+    building: "构建中",
+    uploading: "上传中",
+    deploying: "部署中",
   };
-  return `[${currentMsName}] ${phaseLabels[currentPhase] || '处理中'}`;
+  return `[${currentMsName}] ${phaseLabels[currentPhase] || "处理中"}`;
 }
 
 /**
@@ -689,12 +779,12 @@ function getMsOverallPhaseLabel(): string {
  */
 function getMsOverallColor(): string {
   const progresses = Object.values(buildProgressMap);
-  const failed = progresses.filter(p => p?.phase === 'error').length;
-  const completed = progresses.filter(p => p?.phase === 'completed').length;
+  const failed = progresses.filter((p) => p?.phase === "error").length;
+  const completed = progresses.filter((p) => p?.phase === "completed").length;
 
-  if (failed > 0) return 'text-red-400';
-  if (completed === progresses.length) return 'text-green-400';
-  return 'text-blue-400';
+  if (failed > 0) return "text-red-400";
+  if (completed === progresses.length) return "text-green-400";
+  return "text-blue-400";
 }
 
 /**
@@ -702,12 +792,12 @@ function getMsOverallColor(): string {
  */
 function getMsOverallBarColor(): string {
   const progresses = Object.values(buildProgressMap);
-  const failed = progresses.filter(p => p?.phase === 'error').length;
-  const completed = progresses.filter(p => p?.phase === 'completed').length;
+  const failed = progresses.filter((p) => p?.phase === "error").length;
+  const completed = progresses.filter((p) => p?.phase === "completed").length;
 
-  if (failed > 0) return 'bg-red-500';
-  if (completed === progresses.length) return 'bg-green-500';
-  return 'bg-blue-500';
+  if (failed > 0) return "bg-red-500";
+  if (completed === progresses.length) return "bg-green-500";
+  return "bg-blue-500";
 }
 
 /**
@@ -724,19 +814,27 @@ const elapsedSeconds = ref(0); // 经过的秒数
 
 // 是否为后端微服务模式（用于进度条数据源切换）
 const isMsDeploy = computed(
-  () => deployType.value === 'backend' && backendArchitecture.value === 'microservice',
+  () =>
+    deployType.value === "backend" &&
+    backendArchitecture.value === "microservice",
 );
 
 // ==================== 单部署模式（前端 / 后端单体）进度辅助函数 ====================
 
 /**
  * 获取单部署模式总体进度百分比（0-100）
- * 优先使用 useDeploy 中的 deployProgress（一键部署的构建/上传/部署阶段进度）
+ * 优先使用 useDeploy 中的 deployProgress（部署的构建/上传/部署阶段进度）
  * 退化使用 useUploadStore.progress（手动上传文件进度）
  */
 function getSingleProgress(): number {
-  if (deployProgress.value && typeof deployProgress.value.percentage === 'number') {
-    return Math.min(Math.max(Math.floor(deployProgress.value.percentage), 0), 100);
+  if (
+    deployProgress.value &&
+    typeof deployProgress.value.percentage === "number"
+  ) {
+    return Math.min(
+      Math.max(Math.floor(deployProgress.value.percentage), 0),
+      100,
+    );
   }
   return Math.min(Math.max(Math.floor(progress.value.percentage || 0), 0), 100);
 }
@@ -747,50 +845,51 @@ function getSingleProgress(): number {
 function getSinglePhaseLabel(): string {
   if (deployProgress.value) {
     const phaseLabels: Record<string, string> = {
-      building: '构建中',
-      uploading: '上传中',
-      deploying: '部署中',
-      completed: '部署完成',
+      building: "构建中",
+      uploading: "上传中",
+      deploying: "部署中",
+      completed: "部署完成",
     };
     const phase = deployProgress.value.phase;
-    const label = phaseLabels[phase] || deployProgress.value.step || '处理中';
-    if (deployProgress.value.step && phase !== 'completed') {
-      return `${label}: ${deployProgress.value.step}`;
+    const label = phaseLabels[phase] || deployProgress.value.step || "处理中";
+    if (deployProgress.value.step && phase !== "completed") {
+      // 如果 step 有内容就直接显示，不再拼接阶段前缀
+      return deployProgress.value.step;
     }
     return label;
   }
-  if (progress.value.status === 'uploading' && progress.value.totalFiles > 0) {
+  if (progress.value.status === "uploading" && progress.value.totalFiles > 0) {
     return `上传中 (${progress.value.uploadedFiles}/${progress.value.totalFiles})`;
   }
-  return '准备中...';
+  return "准备中...";
 }
 
 /**
  * 获取单部署模式进度文字颜色
  */
 function getSingleColor(): string {
-  if (deployProgress.value?.status === 'error') return 'text-red-400';
+  if (deployProgress.value?.status === "error") return "text-red-400";
   if (
-    deployProgress.value?.status === 'success' ||
-    deployProgress.value?.phase === 'completed'
+    deployProgress.value?.status === "success" ||
+    deployProgress.value?.phase === "completed"
   ) {
-    return 'text-green-400';
+    return "text-green-400";
   }
-  return 'text-blue-400';
+  return "text-blue-400";
 }
 
 /**
  * 获取单部署模式进度条颜色
  */
 function getSingleBarColor(): string {
-  if (deployProgress.value?.status === 'error') return 'bg-red-500';
+  if (deployProgress.value?.status === "error") return "bg-red-500";
   if (
-    deployProgress.value?.status === 'success' ||
-    deployProgress.value?.phase === 'completed'
+    deployProgress.value?.status === "success" ||
+    deployProgress.value?.phase === "completed"
   ) {
-    return 'bg-green-500';
+    return "bg-green-500";
   }
-  return 'bg-blue-500';
+  return "bg-blue-500";
 }
 
 /**
@@ -900,7 +999,7 @@ watch(
   buildProgressMap,
   (progressMap) => {
     if (!msIsDeploying.value) {
-      console.log('[watch buildProgressMap] msIsDeploying is false, skipping');
+      console.log("[watch buildProgressMap] msIsDeploying is false, skipping");
       return;
     }
 
@@ -913,7 +1012,9 @@ watch(
       if (lastMicroserviceProgressKeys[msId] === progressKey) continue;
       lastMicroserviceProgressKeys[msId] = progressKey;
 
-      console.log(`[watch buildProgressMap] ${progress.microserviceName} - phase: ${progress.phase}, percentage: ${progress.percentage}`);
+      console.log(
+        `[watch buildProgressMap] ${progress.microserviceName} - phase: ${progress.phase}, percentage: ${progress.percentage}`,
+      );
 
       // 根据阶段打印日志
       switch (progress.phase) {
@@ -923,7 +1024,9 @@ watch(
 
         case "uploading":
           // 上传阶段：所有消息都记录
-          addLog(`[${progress.microserviceName}] ${progress.output || '上传中...'}`);
+          addLog(
+            `[${progress.microserviceName}] ${progress.output || "上传中..."}`,
+          );
           break;
 
         case "deploying":
@@ -1217,18 +1320,15 @@ function getStatusLabel(status: string): string {
   return labels[status] || status;
 }
 
-// 一键部署处理
+// 部署处理
 async function handleOneClickDeploy() {
   if (!selectedServer.value) {
     showWarning("请选择服务器", "请先在顶部选择要部署的目标服务器");
     return;
   }
-  
-  addLog(
-    `控制台已清空`,
-    "info",
-  );
-  clearLogs()
+
+  addLog(`控制台已清空`, "info");
+  clearLogs();
 
   const targetConfig =
     deployType.value === "frontend"
@@ -1253,7 +1353,7 @@ async function handleOneClickDeploy() {
   // 启动部署计时器
   startDeployTimer();
   addLog(
-    `开始一键部署${deployType.value === "frontend" ? "前端" : "后端"}...`,
+    `开始部署${deployType.value === "frontend" ? "前端" : "后端"}...`,
     "info",
   );
 
@@ -1262,7 +1362,7 @@ async function handleOneClickDeploy() {
 
     if (result.success) {
       addLog(
-        `一键部署成功！总耗时: ${formatDuration(result.totalDuration / 1000)}`,
+        `部署成功！总耗时: ${formatDuration(result.totalDuration / 1000)}`,
         "success",
       );
     } else {
@@ -1273,7 +1373,7 @@ async function handleOneClickDeploy() {
         percentage: 0,
         status: "error",
       };
-      addLog(`一键部署失败: ${result.error}`, "error");
+      addLog(`部署失败: ${result.error}`, "error");
     }
   } catch (error: any) {
     // 强制更新进度状态为失败
@@ -1283,8 +1383,8 @@ async function handleOneClickDeploy() {
       percentage: 0,
       status: "error",
     };
-    console.error("一键部署失败:", error);
-    addLog(`一键部署失败: ${error.message || "未知错误"}`, "error");
+    console.error("部署失败:", error);
+    addLog(`部署失败: ${error.message || "未知错误"}`, "error");
   } finally {
     // 停止部署计时器
     stopDeployTimer();
@@ -1294,7 +1394,10 @@ async function handleOneClickDeploy() {
 // 取消部署
 function handleCancelDeploy() {
   // 根据部署类型调用正确的取消方法
-  if (deployType.value === 'backend' && backendArchitecture.value === 'microservice') {
+  if (
+    deployType.value === "backend" &&
+    backendArchitecture.value === "microservice"
+  ) {
     cancelMsDeploy();
   } else {
     cancelDeploy();
@@ -1349,7 +1452,7 @@ async function handleBuildOne(ms: MicroserviceConfig) {
   }
 }
 
-// 一键部署全部微服务
+// 部署全部微服务
 async function handleDeployAll() {
   if (!selectedServer.value) {
     showWarning("请选择服务器", "请先在顶部选择要部署的目标服务器");
@@ -1370,7 +1473,7 @@ async function handleDeployAll() {
   startDeployTimer();
   // 清空日志，准备接收新的构建日志
   uploadStore.logs = [];
-  addLog(`开始一键部署 ${enabledMicroserviceCount.value} 个微服务...`, "info");
+  addLog(`开始部署 ${enabledMicroserviceCount.value} 个微服务...`, "info");
 
   try {
     const result = await deployAllMicroservices(selectedServer.value.id, [
@@ -1380,18 +1483,18 @@ async function handleDeployAll() {
     if (result) {
       if (result.success) {
         addLog(
-          `一键部署成功！成功: ${result.successCount}，失败: ${result.failedCount}，总耗时: ${formatDuration(result.totalDuration / 1000)}`,
+          `部署成功！成功: ${result.successCount}，失败: ${result.failedCount}，总耗时: ${formatDuration(result.totalDuration / 1000)}`,
           "success",
         );
       } else {
         addLog(
-          `一键部署完成。成功: ${result.successCount}，失败: ${result.failedCount}`,
+          `部署完成。成功: ${result.successCount}，失败: ${result.failedCount}`,
           result.failedCount > 0 ? "warning" : "success",
         );
       }
     }
   } catch (error: any) {
-    addLog(`一键部署失败: ${error.message || "未知错误"}`, "error");
+    addLog(`部署失败: ${error.message || "未知错误"}`, "error");
   } finally {
     // 停止部署计时器
     stopDeployTimer();
