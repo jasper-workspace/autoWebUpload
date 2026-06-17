@@ -341,7 +341,7 @@ export class SFTPService {
         const subResult = await this.scanFolder(fullPath);
         files.push(...subResult.files);
         dirs.push(...subResult.dirs);
-      } else if (entry.isFile()) {
+      } else if (entry.isFile() && !entry.name.endsWith('-sources.jar')) {
         files.push(fullPath);
       }
     }

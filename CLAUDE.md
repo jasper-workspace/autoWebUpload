@@ -35,7 +35,7 @@ src/
 ├── main/                          # Electron 主进程 (Node.js)
 │   ├── index.ts                   # 应用入口、窗口管理、系统主题监听
 │   ├── preload.ts                 # Context Bridge API 暴露
-│   ├── ipc/handlers.ts            # IPC 处理器注册
+│   ├── ipc/handlers.ts            # IPC 处理器注册（新增处理器在此）
 │   ├── services/
 │   │   ├── sftp.ts                # SFTP 连接、文件上传、命令执行
 │   │   ├── localBuild.ts          # 前端构建 (npm run build)
@@ -65,27 +65,34 @@ src/
     └── types.ts                   # 主进程和渲染进程共享的类型定义
 ```
 
+### 配置文件
+- `vite.config.ts` - Vite + Electron 构建配置
+- `tsconfig.json` / `tsconfig.node.json` - TypeScript 配置
+- `tailwind.config.js` - Tailwind CSS 主题配置（CSS 变量定义）
+
 ## 关键设计
 
 ### IPC 通信模式
-- 主进程使用 `ipcMain.handle` 注册处理器，渲染进程通过 `ipcRenderer.invoke` 调用
+- 主进程使用 `ipcMain.handle` 注册处理器（处理器注册在 `src/main/ipc/handlers.ts`）
+- 渲染进程通过 `ipcRenderer.invoke` 调用
 - 进度回调和日志流使用 `webContents.send` + `ipcRenderer.on` 实现双工通信
 - Preload API 在 `src/main/preload.ts`，通过 Context Bridge 暴露为 `window.electronAPI`
 
-### Preload API 一览
-```
-配置: getConfigs, saveConfig, deleteConfig, getConfig
-主题: getThemeConfig, saveThemeConfig
-上传: testConnection, uploadFolder, cancelUpload
-构建: buildFrontend, buildBackend, cancelBuild
-微服务: scanMicroservices, buildMicroservices
-进度: onUploadProgress, onBuildProgress, removeUploadProgressListener
-日志: fetchServerLogs, startLogStream, stopLogStream, onLogStream
-终端: connectTerminal, disconnectTerminal, resizeTerminal, onTerminalData
-导入导出: exportConfigs, importConfigs
-更新: checkForUpdates, openUpdateUrl, saveIgnoreVersion
-其他: selectFolder, showMessageBox, getAppVersion
-```
+### Preload API (`window.electronAPI`)
+
+| 分类 | 方法 |
+|------|------|
+| 配置 | `getConfigs`, `saveConfig`, `deleteConfig`, `getConfig` |
+| 主题 | `getThemeConfig`, `saveThemeConfig` |
+| 上传 | `testConnection`, `uploadFolder`, `cancelUpload` |
+| 构建 | `buildFrontend`, `buildBackend`, `cancelBuild` |
+| 微服务 | `scanMicroservices`, `buildMicroservices` |
+| 进度 | `onUploadProgress`, `onBuildProgress`, `removeUploadProgressListener` |
+| 日志 | `fetchServerLogs`, `startLogStream`, `stopLogStream`, `onLogStream` |
+| 终端 | `connectTerminal`, `disconnectTerminal`, `resizeTerminal`, `onTerminalData` |
+| 导入导出 | `exportConfigs`, `importConfigs` |
+| 更新 | `checkForUpdates`, `openUpdateUrl`, `saveIgnoreVersion` |
+| 其他 | `selectFolder`, `showMessageBox`, `getAppVersion` |
 
 ### 服务器配置结构 (ServerConfig)
 - 采用父子级结构：服务器包含 `frontend` 和 `backend` 两个独立的 `DeployTargetConfig`
@@ -109,8 +116,18 @@ src/
 - 主进程监听 `nativeTheme` 变化自动更新
 
 ### 持久化存储 (`electron-store`)
-- `server-configs.json` - 服务器配置
-- `app-configs.json` - 主题和更新配置
+- Windows: `%APPDATA%/auto-web-upload/server-configs.json`
+- Windows: `%APPDATA%/auto-web-upload/app-configs.json`
+- macOS: `~/Library/Application Support/auto-web-upload/`
+
+## 项目特定规则
+
+项目规则位于 `.claude/rules/` 目录，**必须遵循**:
+- `my-rules.md` - 基本规则（中文回答、Windows系统、禁止新建文件等）
+- `workflow-rules.md` - 工作流程（场景识别和推荐路径）
+- `documents-rules.md` - 文档编写规范（输出目录、命名规则）
+- `project-rules.md` - 项目开发规则
+- `codegraph-rules.md` - 代码检索工具使用规则
 
 ## 类型定义位置
 

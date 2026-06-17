@@ -68,8 +68,11 @@ export class MavenExecutor {
 
     return new Promise((resolve) => {
       // 使用PowerShell执行Maven命令
+      // 修复spawn powershell ENOENT问题：使用绝对路径确保在所有Windows环境中都能找到powershell
+      const powershellPath = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+      
       this.currentProcess = spawn(
-        'powershell',
+        powershellPath,
         [
           '-NoProfile',
           '-NoLogo',
@@ -291,8 +294,8 @@ export class MavenExecutor {
       for (const entry of entries) {
         const fullPath = path.join(targetPath, entry.name);
 
-        // 只上传 jar 包文件，排除 original 文件（Spring Boot repackage 生成的文件）
-        if (entry.isFile() && entry.name.endsWith('.jar') && !entry.name.includes('original')) {
+        // 只上传 jar 包文件，排除 original 文件（Spring Boot repackage 生成的文件）和 sources.jar（源码包）
+        if (entry.isFile() && entry.name.endsWith('.jar') && !entry.name.includes('original') && !entry.name.endsWith('-sources.jar')) {
           const stats = await fs.stat(fullPath);
           artifacts.push({
             type: 'jar',
