@@ -18,7 +18,7 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build && electron-builder",
+    "build": "node scripts/set-env.js && vue-tsc && vite build && electron-builder",
     "preview": "vite preview",
     "rebuild": "electron-rebuild",
     "debug": "vite --mode development",
@@ -70,10 +70,18 @@
     "npmRebuild": false,
     "win": {
       "target": [
-        "portable"
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
       ],
-      "icon": "favicon.png",
-      "artifactName": "${productName}-${version}-portable.exe"
+      "icon": "favicon.png"
+    },
+    "portable": {
+      "artifactName": "${productName}.exe"
+    },
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
     }
   }
 }
