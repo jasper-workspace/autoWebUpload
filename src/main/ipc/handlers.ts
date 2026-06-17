@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow, app, shell, nativeTheme } from 'electron';
+import { ipcMain, dialog, BrowserWindow, app, shell, nativeTheme, Notification } from 'electron';
 import Store from 'electron-store';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
@@ -697,7 +697,6 @@ export function setupIpcHandlers() {
           body: options.body,
           icon: iconPath
         });
-        notification.show();
       }
 
       // 3秒后移除托盘图标

@@ -44,6 +44,7 @@ declare global {
       getAppVersion: () => Promise<string>;
       getAppInfo: () => Promise<{ version: string; author: string }>;
       showMessageBox: (options: { type: string; title: string; message: string; buttons: string[] }) => Promise<any>;
+      showNotification: (options: { title: string; body: string; icon?: string }) => Promise<{ success: boolean; type: string }>;
       
       // 更新相关
       checkForUpdates: () => Promise<any>;

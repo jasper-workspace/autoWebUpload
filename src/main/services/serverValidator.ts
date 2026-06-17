@@ -68,7 +68,7 @@ export class ServerValidator {
 
       return result;
     } finally {
-      if (this.sshClient._eventsCount > 0) {
+      if ((this.sshClient as any)._eventsCount > 0) {
         try {
           this.sshClient.end();
         } catch {
@@ -112,7 +112,7 @@ export class ServerValidator {
   }
 
   async checkDiskSpace(config: ServerConfig): Promise<DiskSpaceResult> {
-    if (!this.sshClient._sock) {
+    if (!(this.sshClient as any)._sock) {
       return {
         success: false,
         total: 0,
@@ -222,7 +222,7 @@ export class ServerValidator {
   }
 
   async checkRemotePath(config: ServerConfig): Promise<PathResult> {
-    if (!this.sshClient._sock) {
+    if (!(this.sshClient as any)._sock) {
       return {
         success: false,
         exists: false,

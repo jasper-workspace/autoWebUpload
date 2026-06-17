@@ -649,7 +649,12 @@ function loadTemplate(templateId: string) {
     form.frontend = { ...template.config.frontend, buildConfig: template.config.frontend.buildConfig || createDefaultBuildConfig('frontend') };
   }
   if (template.config.backend) {
-    form.backend = { ...template.config.backend, buildConfig: template.config.backend.buildConfig || createDefaultBuildConfig('backend') };
+    form.backend = {
+      ...template.config.backend,
+      buildConfig: template.config.backend.buildConfig || createDefaultBuildConfig('backend'),
+      microservices: (template.config.backend as any).microservices || [],
+      rootPath: (template.config.backend as any).rootPath || ''
+    };
   }
   if (template.config.retryCount !== undefined) {
     form.retryCount = template.config.retryCount;
@@ -739,7 +744,11 @@ const form = reactive({
   privateKey: '',
   retryCount: 3,
   frontend: createDefaultDeployTarget('frontend'),
-  backend: createDefaultDeployTarget('backend')
+  backend: {
+    ...createDefaultDeployTarget('backend'),
+    microservices: [] as MicroserviceConfig[],
+    rootPath: ''
+  }
 });
 
 const isEditing = computed(() => !!form.id);
@@ -838,7 +847,7 @@ async function selectServer(id: string) {
         logCommand: migrated.backend.logCommand || '',
         enabled: migrated.backend.enabled || false,
         buildConfig: migrated.backend.buildConfig || createDefaultBuildConfig('backend'),
-        microservices: (migrated.backend as any).microservices || [],
+        microservices: ((migrated.backend as any).microservices as MicroserviceConfig[]) || [],
         rootPath: (migrated.backend as any).rootPath || '',
       };
       form.backend = backendConfig;
@@ -868,7 +877,11 @@ function resetForm() {
   form.privateKey = '';
   form.retryCount = 3;
   form.frontend = createDefaultDeployTarget('frontend');
-  form.backend = createDefaultDeployTarget('backend');
+  form.backend = {
+    ...createDefaultDeployTarget('backend'),
+    microservices: [],
+    rootPath: ''
+  };
   authType.value = 'password';
   showPassword.value = false;
   backendArchitecture.value = 'microservice';

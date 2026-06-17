@@ -86,7 +86,7 @@ export class MavenExecutor {
         }
       );
 
-      const process = this.currentProcess;
+      const mavenProcess = this.currentProcess;
       console.log('[MavenExecutor] Maven进程已启动, PID:', this.currentProcess.pid);
 
       // 输出缓冲区，用于累积不完整的行尾
