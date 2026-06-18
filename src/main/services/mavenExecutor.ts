@@ -117,7 +117,7 @@ export class MavenExecutor {
         }
       };
 
-      process.stdout?.on('data', (data: Buffer) => {
+      mavenProcess.stdout?.on('data', (data: Buffer) => {
         const text = data.toString();
         output += text;
         buffer += text;
@@ -126,7 +126,7 @@ export class MavenExecutor {
         flushBuffer();
       });
 
-      process.stderr?.on('data', (data: Buffer) => {
+      mavenProcess.stderr?.on('data', (data: Buffer) => {
         const text = data.toString();
         // Maven的错误输出有时候会写到stderr，这是正常的
         output += text;
@@ -136,7 +136,7 @@ export class MavenExecutor {
         flushBuffer();
       });
 
-      process.on('close', (code: number | null) => {
+      mavenProcess.on('close', (code: number | null) => {
         this.currentProcess = null;
 
         // 发送剩余的所有完整行
@@ -183,7 +183,7 @@ export class MavenExecutor {
         });
       });
 
-      process.on('error', (err: Error) => {
+      mavenProcess.on('error', (err: Error) => {
         this.currentProcess = null;
         resolve({
           success: false,
@@ -282,29 +282,41 @@ export class MavenExecutor {
     const artifacts: { type: string; path: string; size: number }[] = [];
     const targetPath = path.join(microservicePath, 'target');
 
+    console.log(`[MavenExecutor] 开始检测构建产物, microservicePath: ${microservicePath}, targetPath: ${targetPath}`);
+
     try {
       await fs.access(targetPath);
+      console.log(`[MavenExecutor] target目录存在: ${targetPath}`);
     } catch {
+      console.log(`[MavenExecutor] target目录不存在或无访问权限: ${targetPath}`);
       return artifacts;
     }
 
     try {
       const entries = await fs.readdir(targetPath, { withFileTypes: true });
+      console.log(`[MavenExecutor] target目录内容数量: ${entries.length}`);
 
       for (const entry of entries) {
         const fullPath = path.join(targetPath, entry.name);
 
         // 只上传 jar 包文件，排除 original 文件（Spring Boot repackage 生成的文件）和 sources.jar（源码包）
         if (entry.isFile() && entry.name.endsWith('.jar') && !entry.name.includes('original') && !entry.name.endsWith('-sources.jar')) {
-          const stats = await fs.stat(fullPath);
-          artifacts.push({
-            type: 'jar',
-            path: fullPath,
-            size: stats.size,
-          });
+          try {
+            const stats = await fs.stat(fullPath);
+            artifacts.push({
+              type: 'jar',
+              path: fullPath,
+              size: stats.size,
+            });
+            console.log(`[MavenExecutor] 发现jar产物: ${fullPath}, size: ${stats.size}`);
+          } catch (statError) {
+            console.log(`[MavenExecutor] 获取jar文件stat失败: ${fullPath}, error: ${statError}`);
+          }
         }
         // 不上传目录
       }
+
+      console.log(`[MavenExecutor] jar包检测完成, 共找到 ${artifacts.length} 个产物`);
     } catch (error) {
       console.error(`[MavenExecutor] 获取构建产物失败: ${targetPath}`, error);
     }
