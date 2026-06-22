@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
-import type { ServerConfig, DeployTargetConfig, BuildConfig } from '../../shared/types';
+import type { ServerConfig, DeployTargetConfig, BuildConfig, ServerValidationResult, ConfigTemplate, ImportConfigResult } from '../../shared/types';
 
 // 创建默认构建配置
 function createDefaultBuildConfig(type: 'frontend' | 'backend'): BuildConfig {
@@ -277,7 +277,125 @@ export const useServerStore = defineStore('server', () => {
     }
     previousServerId = newId;
   });
-  
+
+  // ==================== 服务器验证 ====================
+
+  /**
+   * 验证服务器（连接、磁盘空间、路径）
+   */
+  async function validateServer(serverId: string): Promise<ServerValidationResult | null> {
+    try {
+      const result = await window.electronAPI.serverValidate(serverId);
+      return result;
+    } catch (error) {
+      console.error('服务器验证失败:', error);
+      return null;
+    }
+  }
+
+  // ==================== 配置模板管理 ====================
+
+  // 模板列表
+  const templates = ref<ConfigTemplate[]>([]);
+
+  /**
+   * 加载模板列表
+   */
+  async function loadTemplates() {
+    try {
+      const result = await window.electronAPI.listTemplates();
+      if (result.success) {
+        templates.value = result.templates;
+      }
+      return result;
+    } catch (error) {
+      console.error('加载模板列表失败:', error);
+      return { success: false, templates: [], error: String(error) };
+    }
+  }
+
+  /**
+   * 保存模板
+   */
+  async function saveTemplate(name: string, description: string | undefined, config: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await window.electronAPI.saveTemplate({ name, description, config });
+      if (result.success) {
+        await loadTemplates();
+      }
+      return result;
+    } catch (error) {
+      console.error('保存模板失败:', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
+   * 加载模板
+   */
+  async function loadTemplateById(templateId: string): Promise<{ success: boolean; template?: ConfigTemplate; error?: string }> {
+    try {
+      return await window.electronAPI.loadTemplate(templateId);
+    } catch (error) {
+      console.error('加载模板失败:', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
+   * 删除模板
+   */
+  async function deleteTemplateById(templateId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await window.electronAPI.deleteTemplate(templateId);
+      if (result.success) {
+        await loadTemplates();
+      }
+      return result;
+    } catch (error) {
+      console.error('删除模板失败:', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  // ==================== 配置导入导出 ====================
+
+  /**
+   * 导出配置
+   */
+  async function exportConfig(): Promise<{ success: boolean; json?: string; error?: string }> {
+    try {
+      return await window.electronAPI.exportConfig();
+    } catch (error) {
+      console.error('导出配置失败:', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
+   * 导入配置
+   */
+  async function importConfig(
+    importData: ServerConfig[],
+    options: { mergeType: 'replace' | 'merge' | 'skip' }
+  ): Promise<ImportConfigResult> {
+    try {
+      const result = await window.electronAPI.importConfig(importData, options);
+      if (result.success) {
+        await loadServers();
+      }
+      return result;
+    } catch (error) {
+      console.error('导入配置失败:', error);
+      return {
+        success: false,
+        importedCount: 0,
+        conflictCount: 0,
+        error: String(error)
+      };
+    }
+  }
+
   return {
     servers,
     selectedServerId,
@@ -288,6 +406,17 @@ export const useServerStore = defineStore('server', () => {
     refreshIfNeeded,
     setSelectedServerId,
     clearSelectedServer,
-    disconnectAll
+    disconnectAll,
+    // 服务器验证
+    validateServer,
+    // 模板管理
+    templates,
+    loadTemplates,
+    saveTemplate,
+    loadTemplateById,
+    deleteTemplateById,
+    // 导入导出
+    exportConfig,
+    importConfig
   };
 });

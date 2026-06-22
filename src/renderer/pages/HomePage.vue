@@ -611,6 +611,7 @@ const logs = computed(() => uploadStore.logs);
 const logContainer = ref<HTMLElement | null>(null); // 使用本地引用，保持自动滚动
 const logSearchKeyword = ref("");
 const logFilterType = ref("all");
+const searchMode = ref<'keyword' | 'regex'>('keyword'); // 搜索模式：关键词/正则
 
 const filteredLogs = computed(() => {
   let result = logs.value;
@@ -620,12 +621,33 @@ const filteredLogs = computed(() => {
   }
 
   if (logSearchKeyword.value) {
-    const keyword = logSearchKeyword.value.toLowerCase();
-    result = result.filter(
-      (log) =>
-        log.message.toLowerCase().includes(keyword) ||
-        log.time.toLowerCase().includes(keyword)
-    );
+    if (searchMode.value === 'regex') {
+      // 正则表达式搜索
+      try {
+        const regex = new RegExp(logSearchKeyword.value, 'i');
+        result = result.filter(
+          (log) =>
+            regex.test(log.message) ||
+            regex.test(log.time)
+        );
+      } catch {
+        // 正则表达式无效，静默回退到关键词搜索
+        const keyword = logSearchKeyword.value.toLowerCase();
+        result = result.filter(
+          (log) =>
+            log.message.toLowerCase().includes(keyword) ||
+            log.time.toLowerCase().includes(keyword)
+        );
+      }
+    } else {
+      // 关键词搜索
+      const keyword = logSearchKeyword.value.toLowerCase();
+      result = result.filter(
+        (log) =>
+          log.message.toLowerCase().includes(keyword) ||
+          log.time.toLowerCase().includes(keyword)
+      );
+    }
   }
 
   return result;
@@ -637,7 +659,14 @@ function highlightKeyword(message: string): string {
   }
 
   const keyword = logSearchKeyword.value;
-  const regex = new RegExp(`(${keyword})`, "gi");
+  let regex: RegExp;
+  try {
+    regex = new RegExp(`(${keyword})`, "gi");
+  } catch {
+    // 如果是无效的正则，使用转义后的关键词
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    regex = new RegExp(`(${escapedKeyword})`, "gi");
+  }
   const escapedMessage = escapeHtml(message);
   return escapedMessage.replace(
     regex,
@@ -654,34 +683,54 @@ function escapeHtml(text: string): string {
 function resetLogFilter() {
   logSearchKeyword.value = "";
   logFilterType.value = "all";
+  searchMode.value = "keyword";
 }
 
-async function exportLogs() {
+// 日志导出格式类型
+type ExportFormat = 'txt' | 'json';
+
+async function exportLogs(format: ExportFormat = 'txt') {
   if (filteredLogs.value.length === 0) return;
 
-  const content = filteredLogs.value
-    .map((log) => `[${log.time}] ${log.message}`)
-    .join("\n");
+  let content: string;
+  let defaultName: string;
+
+  if (format === 'json') {
+    // JSON 格式导出
+    const exportData = filteredLogs.value.map(log => ({
+      time: log.time,
+      type: log.type || 'info',
+      message: log.message
+    }));
+    content = JSON.stringify(exportData, null, 2);
+    defaultName = `deploy-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.json`;
+  } else {
+    // TXT 格式导出
+    content = filteredLogs.value
+      .map((log) => `[${log.time}] ${log.message}`)
+      .join("\n");
+    defaultName = `deploy-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.txt`;
+  }
 
   try {
     const result = await window.electronAPI.showMessageBox({
       type: "info",
       title: "导出日志",
-      message: `即将导出 ${filteredLogs.value.length} 条日志`,
+      message: `即将导出 ${filteredLogs.value.length} 条日志（${format.toUpperCase()}格式）`,
       buttons: ["确认", "取消"],
     });
 
     if (result.response === 0) {
-      const blob = new Blob([content], { type: "text/plain" });
+      const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `deploy-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.txt`;
+      a.download = defaultName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      addLog("日志导出成功", "success");
+      addLog(`日志导出成功（${format.toUpperCase()}格式）`, "success");
     }
   } catch (error) {
     console.error("导出日志失败:", error);

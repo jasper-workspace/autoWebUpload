@@ -389,3 +389,108 @@ export interface BackendConfig extends DeployTargetConfig {
   /** 自定义 Java 路径（可选，留空则使用系统默认 Java） */
   javaPath?: string;
 }
+
+// ==================== 服务器验证类型 ====================
+
+/**
+ * 服务器验证结果
+ */
+export interface ServerValidationResult {
+  /** 验证是否成功 */
+  success: boolean;
+  /** 错误信息（验证失败时） */
+  error?: string;
+  /** 连接状态 */
+  connection: {
+    status: 'success' | 'error' | 'unknown';
+    message: string;
+  };
+  /** 磁盘空间状态 */
+  disk: {
+    status: 'success' | 'warning' | 'unknown';
+    used?: string;
+    message: string;
+  };
+  /** 目标路径状态 */
+  path: {
+    status: 'success' | 'warning' | 'unknown';
+    message: string;
+  };
+}
+
+/**
+ * 验证配置
+ */
+export interface ValidationConfig {
+  /** 磁盘空间警告阈值（百分比），默认90 */
+  diskWarningThreshold?: number;
+  /** 连接超时时间（毫秒），默认10000 */
+  connectionTimeout?: number;
+  /** 是否自动创建路径 */
+  autoCreatePath?: boolean;
+}
+
+// ==================== 配置模板类型 ====================
+
+/**
+ * 配置模板
+ */
+export interface ConfigTemplate {
+  /** 模板ID */
+  id: string;
+  /** 模板名称 */
+  name: string;
+  /** 模板描述 */
+  description?: string;
+  /** 模板配置内容 */
+  config: {
+    frontend?: {
+      remotePath?: string;
+      postUploadCommand?: string;
+      buildConfig?: {
+        localPath?: string;
+        buildCommand?: string;
+        outputDir?: string;
+      };
+    };
+    backend?: {
+      remotePath?: string;
+      postUploadCommand?: string;
+      buildConfig?: {
+        localPath?: string;
+        buildCommand?: string;
+        outputDir?: string;
+      };
+    };
+  };
+  /** 创建时间戳 */
+  createdAt: number;
+  /** 更新时间戳 */
+  updatedAt: number;
+}
+
+/**
+ * 导入配置选项
+ */
+export interface ImportConfigOptions {
+  /** 合并类型：replace-替换，merge-合并，skip-跳过冲突 */
+  mergeType: 'replace' | 'merge' | 'skip';
+}
+
+/**
+ * 导入结果
+ */
+export interface ImportConfigResult {
+  success: boolean;
+  /** 导入成功数量 */
+  importedCount: number;
+  /** 冲突数量 */
+  conflictCount: number;
+  /** 冲突详情 */
+  conflicts?: Array<{
+    name: string;
+    existingId: string;
+    importedId: string;
+  }>;
+  error?: string;
+}

@@ -15,7 +15,8 @@ import { mavenExecutor } from '../services/mavenExecutor';
 import { multiMicroserviceOrchestrator } from '../services/multiMicroserviceOrchestrator';
 import { ServerValidator } from '../services/serverValidator';
 import { createLogger } from '../logger';
-import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig, MicroserviceConfig, MicroserviceBuildProgress } from '../../shared/types';
+import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig, MicroserviceConfig, MicroserviceBuildProgress, ServerValidationResult, ConfigTemplate, ImportConfigOptions, ImportConfigResult } from '../../shared/types';
+import crypto from 'crypto';
 
 // 获取 electron-store 的存储路径
 function getStorePath(): string {
@@ -1218,5 +1219,320 @@ export function setupIpcHandlers() {
   ipcMain.handle('microservice:cancel-deploy', async () => {
     multiMicroserviceOrchestrator.cancelDeploy();
     return { success: true };
+  });
+
+  // ==================== 服务器验证 ====================
+
+  /**
+   * 服务器验证
+   * 验证服务器连接、磁盘空间、目标路径
+   */
+  ipcMain.handle('server:validate', async (_, serverId: string): Promise<ServerValidationResult> => {
+    const servers = store.get('servers', []) as ServerConfig[];
+    const config = servers.find(s => s.id === serverId);
+
+    if (!config) {
+      return {
+        success: false,
+        error: '服务器配置未找到',
+        connection: { status: 'error', message: '配置不存在' },
+        disk: { status: 'unknown', message: '未检测' },
+        path: { status: 'unknown', message: '未检测' }
+      };
+    }
+
+    const result: ServerValidationResult = {
+      success: true,
+      connection: { status: 'unknown', message: '连接中...' },
+      disk: { status: 'unknown', message: '检测中...' },
+      path: { status: 'unknown', message: '检测中...' }
+    };
+
+    const sftp = new SFTPService();
+
+    try {
+      // 1. 测试SSH连接
+      await sftp.connect(config);
+      result.connection = { status: 'success', message: '连接成功' };
+
+      // 2. 检查磁盘空间（获取根目录磁盘使用情况）
+      try {
+        const diskInfo = await sftp.executeCommand('df -h /');
+        const match = diskInfo.output.match(/(\d+)%/);
+        if (match) {
+          const usedPercent = parseInt(match[1]);
+          result.disk = {
+            status: usedPercent >= 90 ? 'warning' : 'success',
+            used: `${usedPercent}%`,
+            message: usedPercent >= 90 ? `磁盘空间不足（已用${usedPercent}%）` : `磁盘空间充足（已用${usedPercent}%）`
+          };
+        } else {
+          result.disk = { status: 'success', message: '磁盘空间正常' };
+        }
+      } catch {
+        result.disk = { status: 'success', message: '磁盘空间检测跳过' };
+      }
+
+      // 3. 检查目标路径（前端的远程路径）
+      const targetPath = config.frontend?.remotePath || config.remotePath || '';
+      if (targetPath) {
+        try {
+          const pathCheck = await sftp.executeCommand(`test -d "${targetPath}" && echo "exists" || echo "not_found"`);
+          if (pathCheck.output.includes('exists')) {
+            result.path = { status: 'success', message: '路径存在' };
+          } else {
+            result.path = { status: 'warning', message: '路径不存在，将自动创建' };
+          }
+        } catch {
+          result.path = { status: 'warning', message: '路径检测失败' };
+        }
+      } else {
+        result.path = { status: 'warning', message: '未配置远程路径' };
+      }
+
+      await sftp.disconnect();
+    } catch (error: any) {
+      result.success = false;
+      result.connection = { status: 'error', message: error.message || '连接失败' };
+    }
+
+    return result;
+  });
+
+  // ==================== 配置模板管理 ====================
+
+  const TEMPLATES_KEY = 'configTemplates';
+  const MAX_TEMPLATES = 20;
+
+  /**
+   * 获取模板列表
+   */
+  ipcMain.handle('config:template:list', async () => {
+    const templates = store.get(TEMPLATES_KEY, []) as ConfigTemplate[];
+    return { success: true, templates };
+  });
+
+  /**
+   * 保存模板
+   */
+  ipcMain.handle('config:template:save', async (_, template: Omit<ConfigTemplate, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const templates = store.get(TEMPLATES_KEY, []) as ConfigTemplate[];
+
+    // 检查模板数量限制
+    if (templates.length >= MAX_TEMPLATES) {
+      return {
+        success: false,
+        error: `模板数量已达上限（${MAX_TEMPLATES}个），请删除不需要的模板`
+      };
+    }
+
+    // 检查名称重复
+    if (templates.some(t => t.name === template.name)) {
+      return {
+        success: false,
+        error: '模板名称已存在，请使用其他名称'
+      };
+    }
+
+    const newTemplate: ConfigTemplate = {
+      ...template,
+      id: `template_${Date.now()}`,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    templates.push(newTemplate);
+    store.set(TEMPLATES_KEY, templates);
+
+    return { success: true, template: newTemplate };
+  });
+
+  /**
+   * 加载模板
+   */
+  ipcMain.handle('config:template:load', async (_, templateId: string) => {
+    const templates = store.get(TEMPLATES_KEY, []) as ConfigTemplate[];
+    const template = templates.find(t => t.id === templateId);
+
+    if (!template) {
+      return { success: false, error: '模板不存在' };
+    }
+
+    return { success: true, template };
+  });
+
+  /**
+   * 删除模板
+   */
+  ipcMain.handle('config:template:delete', async (_, templateId: string) => {
+    const templates = store.get(TEMPLATES_KEY, []) as ConfigTemplate[];
+    const index = templates.findIndex(t => t.id === templateId);
+
+    if (index === -1) {
+      return { success: false, error: '模板不存在' };
+    }
+
+    templates.splice(index, 1);
+    store.set(TEMPLATES_KEY, templates);
+
+    return { success: true };
+  });
+
+  // ==================== 配置导入导出 ====================
+
+  // 加密密码
+  function encryptPassword(password: string): string {
+    const key = crypto.scryptSync('auto-deploy-tool-key', 'salt', 32);
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(password, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+  }
+
+  // 解密密码
+  function decryptPassword(encrypted: string): string {
+    try {
+      const key = crypto.scryptSync('auto-deploy-tool-key', 'salt', 32);
+      const parts = encrypted.split(':');
+      if (parts.length !== 2) return encrypted;
+      const iv = Buffer.from(parts[0], 'hex');
+      const encryptedText = parts[1];
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch {
+      return encrypted;
+    }
+  }
+
+  /**
+   * 导出配置
+   */
+  ipcMain.handle('config:export', async () => {
+    const servers = store.get('servers', []) as ServerConfig[];
+
+    // 加密敏感信息
+    const exportData = servers.map(server => ({
+      ...server,
+      password: server.password ? encryptPassword(server.password) : undefined,
+      privateKey: server.privateKey ? encryptPassword(server.privateKey) : undefined
+    }));
+
+    return {
+      success: true,
+      data: exportData,
+      json: JSON.stringify(exportData, null, 2)
+    };
+  });
+
+  /**
+   * 导入配置
+   */
+  ipcMain.handle('config:import', async (_, importData: ServerConfig[], options: ImportConfigOptions): Promise<ImportConfigResult> => {
+    const currentServers = store.get('servers', []) as ServerConfig[];
+    const conflicts: { server: ServerConfig; existing: ServerConfig }[] = [];
+    const newServers: ServerConfig[] = [];
+
+    for (const imported of importData) {
+      // 解密敏感信息
+      if (imported.password?.includes(':')) {
+        imported.password = decryptPassword(imported.password);
+      }
+      if (imported.privateKey?.includes(':')) {
+        imported.privateKey = decryptPassword(imported.privateKey);
+      }
+
+      // 为导入的服务器生成新ID
+      imported.id = `server_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const existing = currentServers.find(s => s.name === imported.name);
+
+      if (existing) {
+        conflicts.push({ server: imported, existing });
+
+        switch (options.mergeType) {
+          case 'replace':
+            const replaceIndex = currentServers.findIndex(s => s.name === imported.name);
+            currentServers[replaceIndex] = imported;
+            break;
+          case 'merge':
+            Object.assign(existing, imported);
+            break;
+          case 'skip':
+            break;
+        }
+      } else {
+        newServers.push(imported);
+      }
+    }
+
+    // 保存配置
+    const finalServers = [...currentServers.filter(s =>
+      !conflicts.some(c => c.existing.name === s.name && options.mergeType === 'replace')
+    ), ...newServers];
+
+    store.set('servers', finalServers);
+
+    return {
+      success: true,
+      importedCount: newServers.length + conflicts.filter(c => options.mergeType !== 'skip').length,
+      conflictCount: conflicts.length,
+      conflicts: conflicts.map(c => ({
+        name: c.server.name,
+        existingId: c.existing.id,
+        importedId: c.server.id
+      }))
+    };
+  });
+
+  // ==================== 文件对话框和读取 ====================
+
+  /**
+   * 打开文件选择对话框
+   */
+  ipcMain.handle('dialog:showOpen', async (_, options: {
+    title?: string;
+    filters?: Array<{ name: string; extensions: string[] }>;
+    properties?: Array<'openFile' | 'openDirectory' | 'multiSelections'>;
+  }) => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: options.title,
+        filters: options.filters,
+        properties: options.properties || ['openFile']
+      });
+      return result;
+    } catch (error: any) {
+      logger.error('打开文件对话框失败', error);
+      return { canceled: true, filePaths: [] };
+    }
+  });
+
+  /**
+   * 读取文件内容
+   */
+  ipcMain.handle('file:read', async (_, filePath: string) => {
+    try {
+      const content = await fsPromises.readFile(filePath, 'utf-8');
+      return { success: true, content };
+    } catch (error: any) {
+      logger.error('读取文件失败', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 写入文件内容
+   */
+  ipcMain.handle('file:write', async (_, filePath: string, content: string) => {
+    try {
+      await fsPromises.writeFile(filePath, content, 'utf-8');
+      return { success: true };
+    } catch (error: any) {
+      logger.error('写入文件失败', error);
+      return { success: false, error: error.message };
+    }
   });
 }

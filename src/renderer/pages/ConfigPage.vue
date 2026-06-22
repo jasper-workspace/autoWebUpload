@@ -576,21 +576,17 @@ interface TemplateConfig {
 const templateDropdownOpen = ref(false);
 const templates = ref<TemplateConfig[]>([]);
 
-// 加载模板列表
-function loadTemplates() {
-  const stored = localStorage.getItem('deploy-templates');
-  if (stored) {
-    try {
-      templates.value = JSON.parse(stored);
-    } catch {
-      templates.value = [];
+// 加载模板列表（从后端加载）
+async function loadTemplates() {
+  try {
+    const result = await window.electronAPI.listTemplates();
+    if (result.success) {
+      templates.value = result.templates;
     }
+  } catch (error) {
+    console.error('加载模板列表失败:', error);
+    templates.value = [];
   }
-}
-
-// 保存模板列表
-function saveTemplates() {
-  localStorage.setItem('deploy-templates', JSON.stringify(templates.value));
 }
 
 // 切换模板下拉菜单
@@ -611,65 +607,76 @@ function closeTemplateDropdown(e: MouseEvent) {
   }
 }
 
-// 保存为模板
+// 保存为模板（保存到后端）
 async function saveAsTemplate() {
   if (!form.name) return;
 
-  const templateName = form.name + ' (模板)';
-  
-  // 检查是否已存在同名模板
-  if (templates.value.some(t => t.name === templateName)) {
-    showError('保存失败', '已存在同名模板');
-    return;
+  try {
+    const result = await window.electronAPI.saveTemplate({
+      name: form.name,
+      description: '',
+      config: {
+        frontend: form.frontend,
+        backend: form.backend,
+        retryCount: form.retryCount,
+      }
+    });
+
+    if (result.success) {
+      await loadTemplates();
+      templateDropdownOpen.value = false;
+      showSuccess('保存成功', '模板保存成功');
+    } else {
+      showError('保存失败', result.error || '模板保存失败');
+    }
+  } catch (error: any) {
+    showError('保存失败', error.message || '模板保存失败');
   }
-
-  const template: TemplateConfig = {
-    id: Date.now().toString(),
-    name: templateName,
-    config: {
-      frontend: form.frontend,
-      backend: form.backend,
-      retryCount: form.retryCount,
-    },
-    createdAt: Date.now()
-  };
-
-  templates.value.push(template);
-  saveTemplates();
-  templateDropdownOpen.value = false;
-  showSuccess('保存成功', '模板保存成功');
 }
 
-// 加载模板
-function loadTemplate(templateId: string) {
-  const template = templates.value.find(t => t.id === templateId);
-  if (!template) return;
+// 加载模板（从后端加载）
+async function loadTemplate(templateId: string) {
+  try {
+    const result = await window.electronAPI.loadTemplate(templateId);
+    if (result.success && result.template) {
+      const template = result.template.config;
 
-  if (template.config.frontend) {
-    form.frontend = { ...template.config.frontend, buildConfig: template.config.frontend.buildConfig || createDefaultBuildConfig('frontend') };
-  }
-  if (template.config.backend) {
-    form.backend = {
-      ...template.config.backend,
-      buildConfig: template.config.backend.buildConfig || createDefaultBuildConfig('backend'),
-      microservices: (template.config.backend as any).microservices || [],
-      rootPath: (template.config.backend as any).rootPath || ''
-    };
-  }
-  if (template.config.retryCount !== undefined) {
-    form.retryCount = template.config.retryCount;
-  }
+      if (template.frontend) {
+        form.frontend = { ...template.frontend, buildConfig: template.frontend.buildConfig || createDefaultBuildConfig('frontend') };
+      }
+      if (template.backend) {
+        form.backend = {
+          ...template.backend,
+          buildConfig: template.backend.buildConfig || createDefaultBuildConfig('backend'),
+          microservices: (template.backend as any).microservices || [],
+          rootPath: (template.backend as any).rootPath || ''
+        };
+      }
 
-  templateDropdownOpen.value = false;
-  showSuccess('加载成功', '模板已应用');
+      templateDropdownOpen.value = false;
+      showSuccess('加载成功', '模板已应用');
+    } else {
+      showError('加载失败', result.error || '模板加载失败');
+    }
+  } catch (error: any) {
+    showError('加载失败', error.message || '模板加载失败');
+  }
 }
 
-// 删除模板
-function deleteTemplate(templateId: string) {
+// 删除模板（从后端删除）
+async function deleteTemplate(templateId: string) {
   if (!confirm('确定要删除这个模板吗？')) return;
 
-  templates.value = templates.value.filter(t => t.id !== templateId);
-  saveTemplates();
+  try {
+    const result = await window.electronAPI.deleteTemplate(templateId);
+    if (result.success) {
+      await loadTemplates();
+    } else {
+      showError('删除失败', result.error || '模板删除失败');
+    }
+  } catch (error: any) {
+    showError('删除失败', error.message || '模板删除失败');
+  }
 }
 
 // 全选/取消全选
@@ -1006,12 +1013,21 @@ async function exportConfigs() {
   }
 
   try {
-    // 将响应式对象深度转换为普通对象后再传递
-    const plainConfigs = JSON.parse(JSON.stringify(servers.value));
-    const result = await window.electronAPI.exportConfigs(plainConfigs);
-    if (result.success) {
-      showSuccess('导出成功', `配置已导出到: ${result.filePath}`);
-    } else if (result.message !== '用户取消导出') {
+    // 调用后端 API 获取加密后的配置 JSON
+    const result = await window.electronAPI.exportConfig();
+    if (result.success && result.json) {
+      // 保存为文件
+      const blob = new Blob([result.json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `server-configs-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSuccess('导出成功', '配置文件已导出（密码已加密）');
+    } else {
       showError('导出失败', result.error || '导出失败');
     }
   } catch (error: any) {
@@ -1022,15 +1038,43 @@ async function exportConfigs() {
 // 导入服务器配置
 async function importConfigs() {
   try {
-    const result = await window.electronAPI.importConfigs('replace');
-    if (result.success) {
+    // 打开文件选择对话框
+    const result = await window.electronAPI.showOpenDialog({
+      title: '导入配置',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['openFile']
+    });
+
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return;
+    }
+
+    // 读取文件内容
+    const filePath = result.filePaths[0];
+    const content = await window.electronAPI.readFile(filePath);
+    const importData = JSON.parse(content);
+
+    // 导入配置（使用 replace 模式：冲突时替换）
+    const importResult = await window.electronAPI.importConfig(importData, {
+      mergeType: 'replace'
+    });
+
+    if (importResult.success) {
       await loadServers();
-      showSuccess('导入成功', `成功导入 ${result.count} 个服务器配置`);
-    } else if (result.message !== '用户取消导入') {
-      showError('导入失败', result.error || '导入失败');
+      let message = `成功导入 ${importResult.importedCount} 个服务器配置`;
+      if (importResult.conflictCount > 0) {
+        message += `（${importResult.conflictCount} 个冲突已处理）`;
+      }
+      showSuccess('导入成功', message);
+    } else {
+      showError('导入失败', importResult.error || '导入失败');
     }
   } catch (error: any) {
-    showError('导入失败', error.message || '导入失败');
+    if (error.message?.includes('JSON')) {
+      showError('导入失败', '配置文件格式错误，请选择有效的 JSON 文件');
+    } else {
+      showError('导入失败', error.message || '导入失败');
+    }
   }
 }
 

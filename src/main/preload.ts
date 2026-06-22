@@ -196,6 +196,57 @@ const api = {
   removeMicroserviceBuildProgressListener: () => {
     ipcRenderer.removeAllListeners('microservice:build-progress');
   },
+
+  // ==================== 服务器验证 ====================
+
+  // 验证服务器（连接、磁盘、路径）
+  serverValidate: (serverId: string) =>
+    ipcRenderer.invoke('server:validate', serverId),
+
+  // ==================== 配置模板管理 ====================
+
+  // 获取模板列表
+  listTemplates: () =>
+    ipcRenderer.invoke('config:template:list'),
+
+  // 保存模板
+  saveTemplate: (template: { name: string; description?: string; config: any }) =>
+    ipcRenderer.invoke('config:template:save', template),
+
+  // 加载模板
+  loadTemplate: (templateId: string) =>
+    ipcRenderer.invoke('config:template:load', templateId),
+
+  // 删除模板
+  deleteTemplate: (templateId: string) =>
+    ipcRenderer.invoke('config:template:delete', templateId),
+
+  // ==================== 配置导入导出 ====================
+
+  // 导出配置
+  exportConfig: () =>
+    ipcRenderer.invoke('config:export'),
+
+  // 导入配置
+  importConfig: (importData: any[], options: { mergeType: 'replace' | 'merge' | 'skip' }) =>
+    ipcRenderer.invoke('config:import', importData, options),
+
+  // ==================== 文件对话框和读取 ====================
+
+  // 打开文件选择对话框
+  showOpenDialog: (options: {
+    title?: string;
+    filters?: Array<{ name: string; extensions: string[] }>;
+    properties?: Array<'openFile' | 'openDirectory' | 'multiSelections'>;
+  }) => ipcRenderer.invoke('dialog:showOpen', options),
+
+  // 读取文件内容
+  readFile: (filePath: string) =>
+    ipcRenderer.invoke('file:read', filePath),
+
+  // 写入文件内容
+  writeFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke('file:write', filePath, content),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);
