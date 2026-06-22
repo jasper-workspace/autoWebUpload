@@ -1460,8 +1460,9 @@ async function handleOneClickDeploy() {
     return;
   }
 
-  addLog(`控制台已清空`, "info");
+  // 先清空日志，再添加新的日志
   clearLogs();
+  addLog(`开始部署${deployType.value === "frontend" ? "前端" : "后端"}...`, "info");
 
   const targetConfig =
     deployType.value === "frontend"
@@ -1485,10 +1486,6 @@ async function handleOneClickDeploy() {
   lastLoggedStatus = "";
   // 启动部署计时器
   startDeployTimer();
-  addLog(
-    `开始部署${deployType.value === "frontend" ? "前端" : "后端"}...`,
-    "info",
-  );
 
   try {
     const result = await startDeploy(selectedServer.value.id, deployType.value);

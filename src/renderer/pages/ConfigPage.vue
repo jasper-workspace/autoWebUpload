@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full mx-auto max-w-7xl">
+  <div class="flex flex-col h-full">
     <!-- 顶部工具栏 -->
     <div class="flex items-center justify-between flex-shrink-0 mb-4">
       <h2 class="text-lg font-semibold text-[var(--foreground)]">服务器配置</h2>

@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto h-full flex flex-col">
+  <div class="h-full flex flex-col">
     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
       <!-- 左侧：快捷命令区域 -->
       <div class="col-span-1 md:col-span-3 flex flex-col min-h-0">

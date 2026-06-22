@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full mx-auto max-w-7xl">
+  <div class="flex flex-col h-full">
     <div class="p-5 overflow-y-auto card">
       <h2 class="text-sm font-semibold text-[var(--foreground)] mb-4">
         系统设置
