@@ -9,7 +9,7 @@
         <!-- 1. 主题设置 -->
         <div class="section">
           <h3
-            class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
+            class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
             <div
               class="w-4 h-4 rounded bg-gradient-to-br from-purple-400 to-purple-600"></div>
             主题设置
@@ -26,7 +26,7 @@
                     v-model="theme"
                     type="radio"
                     value="dark"
-                    class="accent-[#409EFF]"
+                    class="accent-[var(--btn-primary)]"
                     @change="updateTheme" />
                   <span class="text-[var(--foreground)]">深色主题</span>
                 </label>
@@ -35,7 +35,7 @@
                     v-model="theme"
                     type="radio"
                     value="light"
-                    class="accent-[#409EFF]"
+                    class="accent-[var(--btn-primary)]"
                     @change="updateTheme" />
                   <span class="text-[var(--foreground)]">浅色主题</span>
                 </label>
@@ -44,7 +44,7 @@
                     v-model="theme"
                     type="radio"
                     value="system"
-                    class="accent-[#409EFF]"
+                    class="accent-[var(--btn-primary)]"
                     @change="updateTheme" />
                   <span class="text-[var(--foreground)]">跟随系统</span>
                 </label>
@@ -56,7 +56,7 @@
         <!-- 2. 更新设置 -->
         <div class="section">
           <h3
-            class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
+            class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
             <div
               class="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-blue-600"></div>
             更新设置
@@ -71,7 +71,7 @@
                 <input
                   v-model="autoCheckUpdate"
                   type="checkbox"
-                  class="accent-[#409EFF]"
+                  class="accent-[var(--btn-primary)]"
                   @change="updateAutoCheckUpdate" />
                 <span class="text-[var(--foreground)]"
                   >应用启动时自动检查更新</span
@@ -93,7 +93,7 @@
         <!-- 3. 关于 -->
         <div class="section">
           <h3
-            class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
+            class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
             <div
               class="w-4 h-4 rounded bg-gradient-to-br from-green-400 to-green-600"></div>
             关于
@@ -117,7 +117,7 @@
               <span class="text-[var(--muted-text)] w-20">项目地址:</span>
               <button
                 @click="openProjectUrl"
-                class="text-[#409EFF] hover:underline break-all text-left">
+                class="text-[var(--btn-primary)] hover:underline break-all text-left">
                 https://gitee.com/just-jasper/auto-web-upload
               </button>
             </div>

@@ -251,7 +251,7 @@ defineExpose({
 }
 
 .context-menu-item:hover {
-  background: #409EFF;
+  background: var(--btn-primary);
 }
 
 .context-menu-divider {

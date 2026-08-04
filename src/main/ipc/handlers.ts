@@ -434,7 +434,10 @@ export function setupIpcHandlers() {
         win?.webContents.send('upload-progress', progress);
       };
 
-      await sftpService.uploadFolder(localPath, config.remotePath!, onProgress);
+      await sftpService.uploadFolder(localPath, config.remotePath!, onProgress, {
+        uploadSourcemap: config.backend?.uploadSourcemap ?? false,
+        keepDeployedJar: config.backend?.keepDeployedJar ?? true
+      });
 
       // 执行后续命令
       if (config.postUploadCommand) {
@@ -1106,6 +1109,8 @@ export function setupIpcHandlers() {
           remotePath: '',
           microservices: [],
           rootPath: '',
+          uploadSourcemap: false,
+          keepDeployedJar: true,
         };
       }
       configs[index].backend!.microservices = config.microservices;

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div class="flex flex-col h-full particle-bg">
     <div class="grid flex-1 min-h-0 grid-cols-1 gap-4 md:grid-cols-12">
       <!-- 左侧：配置区域（占4份） -->
       <div class="flex flex-col min-h-0 col-span-1 md:col-span-4">
@@ -15,7 +15,7 @@
                   v-model="deployType"
                   type="radio"
                   value="frontend"
-                  class="accent-[#409EFF]" />
+                  class="accent-[var(--btn-primary)]" />
                 <span class="text-[var(--foreground)]">前端</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
@@ -23,7 +23,7 @@
                   v-model="deployType"
                   type="radio"
                   value="backend"
-                  class="accent-[#409EFF]" />
+                  class="accent-[var(--btn-primary)]" />
                 <span class="text-[var(--foreground)]">后端</span>
               </label>
             </div>
@@ -40,7 +40,7 @@
                   v-model="backendArchitecture"
                   type="radio"
                   value="microservice"
-                  class="accent-[#409EFF]" />
+                  class="accent-[var(--btn-primary)]" />
                 <span class="text-[var(--foreground)]">微服务</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
@@ -48,7 +48,7 @@
                   v-model="backendArchitecture"
                   type="radio"
                   value="single"
-                  class="accent-[#409EFF]" />
+                  class="accent-[var(--btn-primary)]" />
                 <span class="text-[var(--foreground)]">单体</span>
               </label>
             </div>
@@ -119,13 +119,13 @@
                             enabledMicroservicesList.length
                         "
                         @change="toggleSelectAll"
-                        class="accent-[#409EFF]" />
+                        class="accent-[var(--btn-primary)]" />
                       <span>全选</span>
                     </label>
                     <button
                       v-if="selectedMicroserviceIds.length > 0"
                       @click="clearAllSelection"
-                      class="text-xs text-[#409EFF] hover:text-[#409EFF]/80">
+                      class="text-xs text-[var(--btn-primary)] hover:text-[var(--btn-primary-hover)]">
                       清空
                     </button>
                   </div>
@@ -138,7 +138,7 @@
                       type="checkbox"
                       :checked="selectedMicroserviceIds.includes(ms.id)"
                       @change="toggleMsSelection(ms.id)"
-                      class="accent-[#409EFF]" />
+                      class="accent-[var(--btn-primary)]" />
                     <span>{{ ms.name }} ({{ ms.artifactId }})</span>
                   </label>
                 </div>
@@ -201,7 +201,7 @@
               v-else
               @click="handleOneClickDeploy"
               :disabled="isDeployingRef || !selectedServer"
-              class="w-full btn-oneclick"
+              class="w-full btn-oneclick neon-border"
               :class="isDeployingRef ? 'deploying' : ''">
               <Zap class="w-5 h-5" />
               <span class="btn-text">
@@ -217,7 +217,7 @@
             <button
               v-if="isDeployingRef"
               @click="handleCancelDeploy"
-              class="flex items-center justify-center w-full gap-2 mt-4 text-sm btn-danger">
+              class="flex items-center justify-center w-full gap-2 mt-4 text-sm font-medium px-6 py-2 rounded-lg border border-[#D9534F] text-[#D9534F] hover:bg-[rgba(217,83,79,0.12)] transition-all duration-200">
               <X class="w-4 h-4" />
               取消部署
             </button>
@@ -270,7 +270,7 @@
               <input
                 v-model="showManualUpload"
                 type="checkbox"
-                class="accent-[#409EFF]" />
+                class="accent-[var(--btn-primary)]" />
               <span class="text-sm text-[var(--foreground)]">手动上传</span>
             </label>
           </div>
@@ -419,7 +419,7 @@
               重置
             </button>
             <button
-              @click="exportLogs"
+              @click="() => exportLogs()"
               :disabled="filteredLogs.length === 0"
               class="text-xs text-[var(--foreground)] bg-[var(--card-border)] hover:bg-[var(--scrollbar-thumb-hover)] transition-colors px-2 py-1.5 rounded disabled:opacity-50 disabled:cursor-not-allowed">
               导出

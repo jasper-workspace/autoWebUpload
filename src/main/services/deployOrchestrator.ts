@@ -1,6 +1,6 @@
 import { LocalBuildService } from './localBuild';
 import { SFTPService } from './sftp';
-import { BuildConfig, DeployResult, ServerConfig } from '../../shared/types';
+import { BuildConfig, DeployResult, ServerConfig, UploadFolderOptions } from '../../shared/types';
 import { BrowserWindow } from 'electron';
 
 export class DeployOrchestrator {
@@ -85,7 +85,10 @@ export class DeployOrchestrator {
 
       const localPath = `${buildConfig.localPath}/${buildResult.detectedOutputDir || buildConfig.outputDir}`;
 
-      await this.uploadWithProgress(localPath, remotePath);
+      await this.uploadWithProgress(localPath, remotePath, {
+        uploadSourcemap: serverConfig.backend?.uploadSourcemap ?? false,
+        keepDeployedJar: serverConfig.backend?.keepDeployedJar ?? true
+      });
 
       result.upload = {
         success: true,
@@ -154,7 +157,7 @@ export class DeployOrchestrator {
   /**
    * 带进度上报的上传
    */
-  private async uploadWithProgress(localPath: string, remotePath: string): Promise<void> {
+  private async uploadWithProgress(localPath: string, remotePath: string, options?: UploadFolderOptions): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.sftpService) {
         reject(new Error('SFTP服务未初始化'));
@@ -168,7 +171,8 @@ export class DeployOrchestrator {
           const fileName = progress.currentFile ? progress.currentFile.split(/[\\/]/).pop() || progress.currentFile : '';
           const displayName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
           this.reportDeployProgress('uploading', `正在上传: ${displayName}`, progress.percentage, 'building');
-        }
+        },
+        options
       ).then(() => resolve()).catch(reject);
     });
   }

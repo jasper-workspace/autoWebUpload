@@ -6,6 +6,7 @@ import {
   MicroserviceDeployResult,
   MultiMicroserviceDeployResult,
   ServerConfig,
+  UploadFolderOptions,
 } from '../../shared/types';
 import { mavenExecutor } from './mavenExecutor';
 import { SFTPService } from './sftp';
@@ -322,7 +323,10 @@ export class MultiMicroserviceOrchestrator {
         const remoteDir = microservice.remotePath;
         console.log('[MultiMicroserviceOrchestrator] 开始上传', { local: artifact.path, remote: remoteDir });
 
-        await sftpService.uploadFolder(artifact.path, remoteDir, () => {});
+        await sftpService.uploadFolder(artifact.path, remoteDir, () => {}, {
+          uploadSourcemap: serverConfig.backend?.uploadSourcemap ?? false,
+          keepDeployedJar: serverConfig.backend?.keepDeployedJar ?? true
+        });
         uploadedFiles++;
 
         onProgress({

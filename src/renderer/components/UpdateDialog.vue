@@ -28,7 +28,7 @@
       
       <div class="flex items-center justify-between mb-4">
         <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" v-model="ignoreUpdate" class="accent-[#409EFF]" />
+          <input type="checkbox" v-model="ignoreUpdate" class="accent-[var(--btn-primary)]" />
           <span class="text-sm">不再提示此版本</span>
         </label>
       </div>

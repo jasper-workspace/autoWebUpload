@@ -61,6 +61,28 @@ declare global {
       exportConfigs: (configs: ServerConfig[]) => Promise<{ success: boolean; filePath?: string; error?: string; message?: string }>;
       importConfigs: (mergeMode?: 'merge' | 'replace') => Promise<{ success: boolean; count?: number; configs?: ServerConfig[]; error?: string; message?: string }>;
 
+      // 服务器验证（连接、磁盘、路径）
+      serverValidate: (serverId: string) => Promise<any>;
+
+      // 配置模板管理
+      listTemplates: () => Promise<any>;
+      saveTemplate: (template: { name: string; description?: string; config: any }) => Promise<any>;
+      loadTemplate: (templateId: string) => Promise<any>;
+      deleteTemplate: (templateId: string) => Promise<any>;
+
+      // 配置导入导出（单条）
+      exportConfig: () => Promise<any>;
+      importConfig: (importData: any[], options: { mergeType: 'replace' | 'merge' | 'skip' }) => Promise<any>;
+
+      // 文件对话框与读取
+      showOpenDialog: (options: {
+        title?: string;
+        filters?: Array<{ name: string; extensions: string[] }>;
+        properties?: Array<'openFile' | 'openDirectory' | 'multiSelections'>;
+      }) => Promise<any>;
+      readFile: (filePath: string) => Promise<any>;
+      writeFile: (filePath: string, content: string) => Promise<any>;
+
       // ==================== 终端相关 ====================
       terminalConnect: (options: { serverId: string; cols: number; rows: number }) => Promise<{ success: boolean; error?: string }>;
       terminalDisconnect: () => Promise<{ success: boolean; error?: string }>;

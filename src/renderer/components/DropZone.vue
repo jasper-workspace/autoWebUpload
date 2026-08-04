@@ -229,13 +229,13 @@ function clearSelection() {
 }
 
 .upload-button:hover {
-  border-color: #409EFF;
-  background-color: rgba(64, 158, 255, 0.05);
+  border-color: var(--btn-primary);
+  background-color: rgba(0, 217, 255, 0.05);
 }
 
 .upload-button.drag-over {
-  border-color: #409EFF;
-  background-color: rgba(64, 158, 255, 0.1);
+  border-color: var(--btn-primary);
+  background-color: rgba(0, 217, 255, 0.1);
   transform: scale(1.02);
 }
 
@@ -251,8 +251,8 @@ function clearSelection() {
 }
 
 .upload-button.has-selection {
-  border-color: #409EFF;
-  background-color: rgba(64, 158, 255, 0.1);
+  border-color: var(--btn-primary);
+  background-color: rgba(0, 217, 255, 0.1);
 }
 
 .upload-label {
@@ -298,14 +298,14 @@ function clearSelection() {
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.5rem;
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: rgba(0, 217, 255, 0.1);
   border-radius: 6px;
 }
 
 .folder-icon {
   width: 1.5rem;
   height: 1.5rem;
-  color: #409EFF;
+  color: var(--btn-primary);
   flex-shrink: 0;
 }
 
@@ -333,7 +333,7 @@ function clearSelection() {
 }
 
 .clear-button:hover {
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: rgba(0, 217, 255, 0.1);
   color: var(--foreground);
 }
 
@@ -345,9 +345,9 @@ function clearSelection() {
 .path-display {
   margin-top: 0.75rem;
   padding: 0.75rem;
-  background-color: rgba(64, 158, 255, 0.05);
+  background-color: rgba(0, 217, 255, 0.05);
   border-radius: 6px;
-  border-left: 3px solid #409EFF;
+  border-left: 3px solid var(--btn-primary);
 }
 
 .path-label {

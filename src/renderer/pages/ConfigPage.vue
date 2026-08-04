@@ -12,25 +12,19 @@
           <Upload class="w-4 h-4" />
           导出
         </button>
-        <button @click="toggleTemplateDropdown" class="btn-secondary flex items-center gap-2 px-3 py-1.5 text-sm relative">
+        <button @click="toggleTemplateDropdown"
+          class="btn-secondary flex items-center gap-2 px-3 py-1.5 text-sm relative">
           <Layers class="w-4 h-4" />
           模板
-          <svg
-            class="w-4 h-4 text-[var(--muted-text)]"
-            :class="{ 'rotate-180': templateDropdownOpen }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-[var(--muted-text)]" :class="{ 'rotate-180': templateDropdownOpen }" fill="none"
+            stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
           <!-- 模板下拉菜单 -->
-          <div
-            v-if="templateDropdownOpen"
+          <div v-if="templateDropdownOpen"
             class="absolute right-0 top-full mt-1 bg-[var(--dialog-bg)] border border-[var(--card-border)] rounded-lg shadow-lg z-50 w-48">
             <div class="p-2 border-b border-[var(--card-border)]">
-              <button
-                @click="saveAsTemplate"
-                :disabled="!form.name"
+              <button @click="saveAsTemplate" :disabled="!form.name"
                 class="w-full text-left px-2 py-1.5 text-sm hover:bg-[var(--card-border)] rounded disabled:opacity-50 disabled:cursor-not-allowed">
                 <Save class="w-4 h-4 inline mr-2" />
                 保存为模板
@@ -40,10 +34,7 @@
               <div v-if="templates.length === 0" class="px-2 py-4 text-sm text-[var(--muted-text)] text-center">
                 暂无模板
               </div>
-              <button
-                v-for="template in templates"
-                :key="template.id"
-                @click="loadTemplate(template.id)"
+              <button v-for="template in templates" :key="template.id" @click="loadTemplate(template.id)"
                 class="w-full text-left px-2 py-1.5 text-sm hover:bg-[var(--card-border)] rounded flex items-center justify-between">
                 <span>{{ template.name }}</span>
                 <button @click.stop="deleteTemplate(template.id)" class="p-1 hover:bg-red-500/20 rounded">
@@ -72,7 +63,7 @@
           <div v-for="server in servers" :key="server.id" :class="[
             'px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200',
             selectedServerId === server.id
-              ? 'border-[#409EFF] bg-[#409EFF]/10'
+              ? 'border-[var(--btn-primary)] bg-[var(--btn-primary)]/10'
               : 'border-[var(--card-border)] hover:border-[var(--scrollbar-thumb-hover)] bg-[var(--card-bg)]'
           ]" @click="selectServer(server.id)">
             <div class="flex items-start justify-between mb-2">
@@ -105,7 +96,7 @@
         <div class="flex-1 pr-2 space-y-6 overflow-y-auto">
           <!-- 1. 服务器信息 -->
           <div class="section">
-            <h3 class="text-md font-semibold text-[#409EFF] mb-4 flex items-center gap-2">
+            <h3 class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
               <Server class="w-4 h-4" />
               服务器信息
             </h3>
@@ -135,11 +126,11 @@
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">认证方式</label>
                 <div class="flex gap-3">
                   <label class="flex items-center gap-2 cursor-pointer">
-                    <input v-model="authType" type="radio" value="password" class="accent-[#409EFF]" />
+                    <input v-model="authType" type="radio" value="password" class="accent-[var(--btn-primary)]" />
                     <span class="text-[var(--foreground)]">密码</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
-                    <input v-model="authType" type="radio" value="key" class="accent-[#409EFF]" />
+                    <input v-model="authType" type="radio" value="key" class="accent-[var(--btn-primary)]" />
                     <span class="text-[var(--foreground)]">私钥</span>
                   </label>
                 </div>
@@ -173,7 +164,8 @@
                 <button type="button" @click="testConnection" :disabled="testingConnection"
                   class="flex items-center justify-center w-full gap-2 text-sm btn-primary">
                   <Wifi v-if="!testingConnection" class="w-4 h-4" />
-                  <div v-else class="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                  <div v-else class="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin">
+                  </div>
                   {{ testingConnection ? '测试中...' : '测试连接' }}
                 </button>
               </div>
@@ -239,7 +231,8 @@
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <input v-model="form.frontend.buildConfig!.stopOnBuildFailure" type="checkbox" class="accent-[#409EFF]" />
+                    <input v-model="form.frontend.buildConfig!.stopOnBuildFailure" type="checkbox"
+                      class="accent-[var(--btn-primary)]" />
                     <span class="text-sm text-[var(--foreground)]">构建失败时停止部署</span>
                   </div>
                 </div>
@@ -259,19 +252,13 @@
               <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">架构类型</label>
               <div class="flex gap-4">
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    v-model="backendArchitecture"
-                    type="radio"
-                    value="microservice"
-                    class="accent-[#409EFF]" />
+                  <input v-model="backendArchitecture" type="radio" value="microservice"
+                    class="accent-[var(--btn-primary)]" />
                   <span class="text-[var(--foreground)]">微服务</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    v-model="backendArchitecture"
-                    type="radio"
-                    value="single"
-                    class="accent-[#409EFF]" />
+                  <input v-model="backendArchitecture" type="radio" value="single"
+                    class="accent-[var(--btn-primary)]" />
                   <span class="text-[var(--foreground)]">单体</span>
                 </label>
               </div>
@@ -280,11 +267,33 @@
               </p>
             </div>
 
+            <!-- 后端部署开关：sourcemap 上传与 jar 备份 -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署选项</label>
+              <div class="space-y-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <input v-model="form.backend.uploadSourcemap" type="checkbox" class="accent-[var(--btn-primary)]" />
+                    <span class="text-sm text-[var(--foreground)]">是否上传 sourcemap</span>
+                  </div>
+                  <p class="text-xs text-[var(--muted-text)] mt-1">关闭时不上传 sourcemap 文件</p>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <input v-model="form.backend.keepDeployedJar" type="checkbox" class="accent-[var(--btn-primary)]" />
+                    <span class="text-sm text-[var(--foreground)]">是否保留已部署 jar 包</span>
+                  </div>
+                  <p class="text-xs text-[var(--muted-text)] mt-1">勾选时上传前备份旧 jar 包</p>
+                </div>
+              </div>
+            </div>
+
             <!-- 单体架构配置 -->
             <div v-if="backendArchitecture === 'single'" class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署路径</label>
-                <input v-model="form.backend.remotePath" type="text" class="input-field" placeholder="/var/www/backend" />
+                <input v-model="form.backend.remotePath" type="text" class="input-field"
+                  placeholder="/var/www/backend" />
               </div>
 
               <div>
@@ -334,7 +343,8 @@
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <input v-model="form.backend.buildConfig!.stopOnBuildFailure" type="checkbox" class="accent-[#409EFF]" />
+                    <input v-model="form.backend.buildConfig!.stopOnBuildFailure" type="checkbox"
+                      class="accent-[var(--btn-primary)]" />
                     <span class="text-sm text-[var(--foreground)]">构建失败时停止部署</span>
                   </div>
                 </div>
@@ -366,8 +376,7 @@
                   Java 路径 <span class="text-[var(--muted-text)]">(可选，留空使用系统默认)</span>
                 </label>
                 <div class="flex gap-2">
-                  <input v-model="javaPath" type="text" class="flex-1 input-field"
-                    placeholder="例如: D:\jdk-17" />
+                  <input v-model="javaPath" type="text" class="flex-1 input-field" placeholder="例如: D:\jdk-17" />
                   <button type="button" @click="selectJavaPath" class="text-sm btn-secondary">
                     浏览
                   </button>
@@ -392,13 +401,10 @@
               </div>
 
               <div class="flex items-center gap-3">
-                <button
-                  type="button"
-                  @click="scanMicroservices"
-                  :disabled="!backendRootPath || isScanningMaven"
-                  class="flex items-center gap-2 text-sm btn-secondary"
-                >
-                  <div v-if="isScanningMaven" class="w-4 h-4 border-2 border-current rounded-full border-t-transparent animate-spin"></div>
+                <button type="button" @click="scanMicroservices" :disabled="!backendRootPath || isScanningMaven"
+                  class="flex items-center gap-2 text-sm btn-secondary">
+                  <div v-if="isScanningMaven"
+                    class="w-4 h-4 border-2 border-current rounded-full border-t-transparent animate-spin"></div>
                   <Search v-else class="w-4 h-4" />
                   {{ isScanningMaven ? '扫描中...' : '扫描微服务' }}
                 </button>
@@ -408,7 +414,8 @@
               </div>
 
               <!-- Maven状态 -->
-              <div v-if="!mavenInstalled" class="flex items-center gap-2 p-3 border rounded-lg bg-yellow-500/10 border-yellow-500/30">
+              <div v-if="!mavenInstalled"
+                class="flex items-center gap-2 p-3 border rounded-lg bg-yellow-500/10 border-yellow-500/30">
                 <AlertTriangle class="w-4 h-4 text-yellow-500" />
                 <span class="text-sm text-yellow-500">未检测到Maven，请确保已安装Maven并配置环境变量</span>
               </div>
@@ -416,30 +423,28 @@
               <!-- 微服务列表预览 -->
               <div v-if="scannedMicroservices.length > 0" class="border border-[var(--card-border)] rounded-lg p-3">
                 <div class="flex items-center justify-between mb-3">
-                  <h5 class="text-sm font-medium text-[var(--foreground)]">已扫描的微服务（共 {{ scannedMicroservices.length }} 个）</h5>
+                  <h5 class="text-sm font-medium text-[var(--foreground)]">已扫描的微服务（共 {{ scannedMicroservices.length }}
+                    个）</h5>
                   <div class="flex items-center gap-3">
-                    <label class="flex items-center gap-1 cursor-pointer text-xs text-[var(--muted-text)] hover:text-[var(--foreground)]">
-                      <input type="checkbox"
-                        :checked="allMicroservicesSelected"
-                        :indeterminate="someMicroservicesSelected"
-                        @change="toggleSelectAllMicroservices"
-                        class="accent-[#409EFF]" />
+                    <label
+                      class="flex items-center gap-1 cursor-pointer text-xs text-[var(--muted-text)] hover:text-[var(--foreground)]">
+                      <input type="checkbox" :checked="allMicroservicesSelected"
+                        :indeterminate="someMicroservicesSelected" @change="toggleSelectAllMicroservices"
+                        class="accent-[var(--btn-primary)]" />
                       全选
                     </label>
-                    <button v-if="someMicroservicesSelected" @click="clearAllMicroservices" class="text-xs text-[#409EFF] hover:text-[#409EFF]/80">
+                    <button v-if="someMicroservicesSelected" @click="clearAllMicroservices"
+                      class="text-xs text-[var(--btn-primary)] hover:text-[var(--btn-primary-hover)]">
                       清空
                     </button>
                   </div>
                 </div>
                 <div class="space-y-2 max-h-[400px] overflow-y-auto">
-                  <div
-                    v-for="ms in scannedMicroservices"
-                    :key="ms.id"
-                    class="border border-[var(--card-border)] rounded-lg p-2 bg-[var(--card-bg)]"
-                  >
+                  <div v-for="ms in scannedMicroservices" :key="ms.id"
+                    class="border border-[var(--card-border)] rounded-lg p-2 bg-[var(--card-bg)]">
                     <!-- 微服务头部：名称和启用checkbox -->
                     <div class="flex items-center gap-2 mb-2">
-                      <input type="checkbox" v-model="ms.enabled" class="accent-[#409EFF]" />
+                      <input type="checkbox" v-model="ms.enabled" class="accent-[var(--btn-primary)]" />
                       <span class="text-[var(--foreground)] font-medium flex-1 text-sm">{{ ms.name }}</span>
                       <span class="text-[var(--muted-text)] text-xs">{{ ms.artifactId }}</span>
                     </div>
@@ -449,34 +454,22 @@
                       <!-- 远程路径 -->
                       <div class="flex items-center gap-2">
                         <label class="text-xs text-[var(--muted-text)] w-14 flex-shrink-0">远程路径:</label>
-                        <input
-                          v-model="ms.remotePath"
-                          type="text"
-                          :disabled="!ms.enabled"
-                          class="input-field text-xs flex-1 py-0.5"
-                          placeholder="/opt/app/xxx" />
+                        <input v-model="ms.remotePath" type="text" :disabled="!ms.enabled"
+                          class="input-field text-xs flex-1 py-0.5" placeholder="/opt/app/xxx" />
                       </div>
 
                       <!-- 上传后命令 -->
                       <div class="flex items-center gap-2">
-                        <label class="text-xs text-[var(--muted-text)] w-14 flex-shrink-0">上传命令:</label>
-                        <input
-                          v-model="ms.postUploadCommand"
-                          type="text"
-                          :disabled="!ms.enabled"
-                          class="input-field text-xs flex-1 py-0.5"
-                          placeholder="chmod -R 755 /opt/app/xxx" />
+                        <label class="text-xs text-[var(--muted-text)] w-14 flex-shrink-0">部署命令:</label>
+                        <input v-model="ms.postUploadCommand" type="text" :disabled="!ms.enabled"
+                          class="input-field text-xs flex-1 py-0.5" placeholder="chmod -R 755 /opt/app/xxx" />
                       </div>
 
                       <!-- 日志命令 -->
                       <div class="flex items-center gap-2">
                         <label class="text-xs text-[var(--muted-text)] w-14 flex-shrink-0">日志命令:</label>
-                        <input
-                          v-model="ms.logCommand"
-                          type="text"
-                          :disabled="!ms.enabled"
-                          class="input-field text-xs flex-1 py-0.5"
-                          placeholder="tail -f /opt/logs/xxx.log" />
+                        <input v-model="ms.logCommand" type="text" :disabled="!ms.enabled"
+                          class="input-field text-xs flex-1 py-0.5" placeholder="tail -f /opt/logs/xxx.log" />
                       </div>
                     </div>
                   </div>
@@ -485,7 +478,8 @@
             </div>
 
             <!-- 通用：部署后命令和日志命令（微服务模式下也显示） -->
-            <div v-if="backendArchitecture === 'microservice'" class="space-y-4 mt-4 pt-4 border-t border-[var(--card-border)]">
+            <div v-if="backendArchitecture === 'microservice'"
+              class="space-y-4 mt-4 pt-4 border-t border-[var(--card-border)]">
               <div>
                 <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
                   通用部署后命令 <span class="text-[var(--muted-text)]">(可选)</span>
@@ -539,7 +533,7 @@
         </div>
 
         <button @click="closeConnectionResult"
-          class="w-full py-2 px-4 bg-[#409EFF] hover:bg-[#409EFF]/80 text-white rounded-md transition-colors">
+          class="w-full py-2 px-4 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-md transition-colors">
           确定
         </button>
       </div>
@@ -754,7 +748,9 @@ const form = reactive({
   backend: {
     ...createDefaultDeployTarget('backend'),
     microservices: [] as MicroserviceConfig[],
-    rootPath: ''
+    rootPath: '',
+    uploadSourcemap: false,
+    keepDeployedJar: true
   }
 });
 
@@ -794,6 +790,8 @@ function migrateConfig(server: any): ServerConfig {
       buildConfig: server.buildConfig?.type === 'backend' ? server.buildConfig : undefined,
       microservices: (server.backend as any)?.microservices || [],
       rootPath: (server.backend as any)?.rootPath || '',
+      uploadSourcemap: (server.backend as any)?.uploadSourcemap ?? false,
+      keepDeployedJar: (server.backend as any)?.keepDeployedJar ?? true,
     }
   };
 
@@ -856,6 +854,8 @@ async function selectServer(id: string) {
         buildConfig: migrated.backend.buildConfig || createDefaultBuildConfig('backend'),
         microservices: ((migrated.backend as any).microservices as MicroserviceConfig[]) || [],
         rootPath: (migrated.backend as any).rootPath || '',
+        uploadSourcemap: (migrated.backend as any).uploadSourcemap ?? false,
+        keepDeployedJar: (migrated.backend as any).keepDeployedJar ?? true,
       };
       form.backend = backendConfig;
 
@@ -887,7 +887,9 @@ function resetForm() {
   form.backend = {
     ...createDefaultDeployTarget('backend'),
     microservices: [],
-    rootPath: ''
+    rootPath: '',
+    uploadSourcemap: false,
+    keepDeployedJar: true
   };
   authType.value = 'password';
   showPassword.value = false;
@@ -920,6 +922,9 @@ async function saveConfig() {
     rootPath: backendArchitecture.value === 'microservice' ? backendRootPath.value : '',
     mavenPath: backendArchitecture.value === 'microservice' ? mavenPath.value : undefined,
     javaPath: backendArchitecture.value === 'microservice' ? javaPath.value : undefined,
+    // 后端部署开关
+    uploadSourcemap: form.backend.uploadSourcemap ?? false,
+    keepDeployedJar: form.backend.keepDeployedJar ?? true,
   };
 
   // 使用 JSON.parse(JSON.stringify()) 深度克隆，剥离响应式并确保可序列化

@@ -3,117 +3,253 @@
 @tailwind utilities;
 
 @layer base {
-  /* 深色主题 (One Dark) */
+  /* 深色主题 (代码终端风格 + 科技渐变 + 高科技感) */
   :root[data-theme="dark"] {
-    --background: #1E1E1E;
-    --foreground: #E0E0E0;
-    --card-bg: #2C2C2C;
-    --card-border: #3C3C3C;
-    --input-bg: #2C2C2C;
-    --input-border: #3C3C3C;
-    --input-focus: #409EFF;
-    --btn-primary: #409EFF;
-    --btn-primary-hover: #337ECC;
-    --btn-secondary: #3C3C3C;
-    --btn-secondary-hover: #4C4C4C;
-    --btn-danger: #F56C6C;
-    --btn-danger-hover: #D64A4A;
-    --btn-oneclick-start: #667eea;
-    --btn-oneclick-end: #764ba2;
-    --btn-oneclick-start-hover: #7c8ff5;
-    --btn-oneclick-end-hover: #8a5cb8;
-    --scrollbar-track: #1E1E1E;
-    --scrollbar-thumb: #3C3C3C;
-    --scrollbar-thumb-hover: #4C4C4C;
-    --scrollbar-thumb-active: #5C5C5C;
-    --header-bg: #252525;
-    --header-border: #3C3C3C;
-    --log-bg: #0D0D0D;
-    --muted-text: #8C8C8C;
-    --dialog-bg: #2A2A2A;
+    --background: #0A0E14;
+    --foreground: #E6E8EB;
+    --card-bg: #1A1F29;
+    --card-border: #2D3548;
+    --input-bg: #141922;
+    --input-border: #2D3548;
+    --input-focus: #00D9FF;
+    --btn-primary: #00D9FF;
+    --btn-primary-hover: #00B8D9;
+    --btn-secondary: #2D3548;
+    --btn-secondary-hover: #3D4F6F;
+    --btn-danger: #FF6B9D;
+    --btn-danger-hover: #FF4081;
+    --btn-oneclick-start: #00B8D9;
+    --btn-oneclick-mid: #00D9FF;
+    --btn-oneclick-end: #40E0FF;
+    --btn-oneclick-start-hover: #00D9FF;
+    --btn-oneclick-mid-hover: #40E0FF;
+    --btn-oneclick-end-hover: #66E0FF;
+    --scrollbar-track: #0A0E14;
+    --scrollbar-thumb: #2D3548;
+    --scrollbar-thumb-hover: #3D4F6F;
+    --scrollbar-thumb-active: #4D5F7F;
+    --header-bg: #0A0E14;
+    --header-bg-end: #050810;
+    --header-border: #2D3548;
+    --log-bg: #050709;
+    --muted-text: #6B7B8F;
+    --dialog-bg: #1A1F29;
+    --border-tech-start: #00D9FF;
+    --border-tech-end: #0066CC;
+    --progress-start: #00D9FF;
+    --progress-mid: #0099FF;
+    --progress-end: #6666FF;
+    --success-start: #00D9A0;
+    --success-end: #00FF88;
+    --warning-start: #FFB84D;
+    --warning-end: #FF8800;
+    --error-start: #FF6B9D;
+    --error-end: #FF0066;
+
+    /* 高科技感变量 */
+    --particle-color: rgba(0, 217, 255, 0.3);
+    --particle-line-color: rgba(0, 217, 255, 0.1);
+    --grid-color: rgba(0, 217, 255, 0.15);
+    --grid-glow: rgba(0, 217, 255, 0.3);
+    --neon-cyan: rgba(0, 217, 255, 0.8);
+    --neon-blue: rgba(0, 153, 255, 0.8);
+    --neon-purple: rgba(102, 102, 255, 0.8);
+    --neon-glow-intensity: 30px;
+    --scan-color: rgba(0, 217, 255, 0.5);
+    --scan-speed: 2s;
+    --data-flow-color: rgba(0, 217, 255, 0.6);
+    --data-flow-speed: 1.5s;
+    --glitch-color-1: rgba(0, 217, 255, 0.8);
+    --glitch-color-2: rgba(255, 0, 102, 0.8);
+    --holo-opacity: 0.7;
+    --holo-blur: 10px;
   }
 
-  /* 浅色主题 (One Light) */
+  /* 浅色主题 (代码终端风格 + 科技渐变 + 高科技感) */
   :root[data-theme="light"] {
-    --background: #FAFAFA;
-    --foreground: #333333;
+    --background: #F8FAFB;
+    --foreground: #1A1F29;
     --card-bg: #FFFFFF;
-    --card-border: #E0E0E0;
+    --card-border: #E1E5EA;
     --input-bg: #FFFFFF;
-    --input-border: #E0E0E0;
-    --input-focus: #409EFF;
-    --btn-primary: #409EFF;
-    --btn-primary-hover: #337ECC;
-    --btn-secondary: #F5F7FA;
-    --btn-secondary-hover: #E4E7ED;
-    --btn-danger: #F56C6C;
-    --btn-danger-hover: #D64A4A;
-    --btn-oneclick-start: #667eea;
-    --btn-oneclick-end: #764ba2;
-    --btn-oneclick-start-hover: #7c8ff5;
-    --btn-oneclick-end-hover: #8a5cb8;
-    --scrollbar-track: #F5F5F5;
-    --scrollbar-thumb: #C0C4CC;
-    --scrollbar-thumb-hover: #A6A9AD;
-    --scrollbar-thumb-active: #909399;
+    --input-border: #D1D9E0;
+    --input-focus: #00B8D9;
+    --btn-primary: #00B8D9;
+    --btn-primary-hover: #0097B3;
+    --btn-secondary: #F1F4F7;
+    --btn-secondary-hover: #E1E5EA;
+    --btn-danger: #E91E63;
+    --btn-danger-hover: #C2185B;
+    --btn-oneclick-start: #0097B3;
+    --btn-oneclick-mid: #00B8D9;
+    --btn-oneclick-end: #00D9FF;
+    --btn-oneclick-start-hover: #00B8D9;
+    --btn-oneclick-mid-hover: #00D9FF;
+    --btn-oneclick-end-hover: #33E0FF;
+    --scrollbar-track: #F8FAFB;
+    --scrollbar-thumb: #D1D9E0;
+    --scrollbar-thumb-hover: #B1B9C0;
+    --scrollbar-thumb-active: #919BA3;
     --header-bg: #FFFFFF;
-    --header-border: #E0E0E0;
+    --header-bg-end: #F0F4F8;
+    --header-border: #E1E5EA;
     --log-bg: #FFFFFF;
-    --muted-text: #909399;
+    --muted-text: #6B7B8F;
     --dialog-bg: #FFFFFF;
+    --border-tech-start: #00B8D9;
+    --border-tech-end: #0066AA;
+    --progress-start: #00B8D9;
+    --progress-mid: #0088DD;
+    --progress-end: #5555DD;
+    --success-start: #00A878;
+    --success-end: #00DD66;
+    --warning-start: #F59E0B;
+    --warning-end: #DD7700;
+    --error-start: #E91E63;
+    --error-end: #DD0055;
+
+    /* 高科技感变量 */
+    --particle-color: rgba(0, 184, 217, 0.2);
+    --particle-line-color: rgba(0, 184, 217, 0.08);
+    --grid-color: rgba(0, 184, 217, 0.1);
+    --grid-glow: rgba(0, 184, 217, 0.2);
+    --neon-cyan: rgba(0, 184, 217, 0.6);
+    --neon-blue: rgba(0, 136, 221, 0.6);
+    --neon-purple: rgba(85, 85, 221, 0.6);
+    --neon-glow-intensity: 20px;
+    --scan-color: rgba(0, 184, 217, 0.4);
+    --scan-speed: 2s;
+    --data-flow-color: rgba(0, 184, 217, 0.5);
+    --data-flow-speed: 1.5s;
+    --glitch-color-1: rgba(0, 184, 217, 0.6);
+    --glitch-color-2: rgba(233, 30, 99, 0.6);
+    --holo-opacity: 0.5;
+    --holo-blur: 8px;
   }
 
-  /* 跟随系统主题 - 默认深色 */
+  /* 跟随系统主题 - 默认深色 (科技渐变 + 高科技感) */
   :root[data-theme="system"] {
-    --background: #1E1E1E;
-    --foreground: #E0E0E0;
-    --card-bg: #2C2C2C;
-    --card-border: #3C3C3C;
-    --input-bg: #2C2C2C;
-    --input-border: #3C3C3C;
-    --input-focus: #409EFF;
-    --btn-primary: #409EFF;
-    --btn-primary-hover: #337ECC;
-    --btn-secondary: #3C3C3C;
-    --btn-secondary-hover: #4C4C4C;
-    --btn-danger: #F56C6C;
-    --btn-danger-hover: #D64A4A;
-    --scrollbar-track: #1E1E1E;
-    --scrollbar-thumb: #3C3C3C;
-    --scrollbar-thumb-hover: #4C4C4C;
-    --scrollbar-thumb-active: #5C5C5C;
-    --header-bg: #252525;
-    --header-border: #3C3C3C;
-    --log-bg: #0D0D0D;
-    --muted-text: #8C8C8C;
-    --dialog-bg: #2A2A2A;
+    --background: #0A0E14;
+    --foreground: #E6E8EB;
+    --card-bg: #1A1F29;
+    --card-border: #2D3548;
+    --input-bg: #141922;
+    --input-border: #2D3548;
+    --input-focus: #00D9FF;
+    --btn-primary: #00D9FF;
+    --btn-primary-hover: #00B8D9;
+    --btn-secondary: #2D3548;
+    --btn-secondary-hover: #3D4F6F;
+    --btn-danger: #FF6B9D;
+    --btn-danger-hover: #FF4081;
+    --btn-oneclick-start: #00B8D9;
+    --btn-oneclick-mid: #00D9FF;
+    --btn-oneclick-end: #40E0FF;
+    --btn-oneclick-start-hover: #00D9FF;
+    --btn-oneclick-mid-hover: #40E0FF;
+    --btn-oneclick-end-hover: #66E0FF;
+    --scrollbar-track: #0A0E14;
+    --scrollbar-thumb: #2D3548;
+    --scrollbar-thumb-hover: #3D4F6F;
+    --scrollbar-thumb-active: #4D5F7F;
+    --header-bg: #0A0E14;
+    --header-bg-end: #050810;
+    --header-border: #2D3548;
+    --log-bg: #050709;
+    --muted-text: #6B7B8F;
+    --dialog-bg: #1A1F29;
+    --border-tech-start: #00D9FF;
+    --border-tech-end: #0066CC;
+    --progress-start: #00D9FF;
+    --progress-mid: #0099FF;
+    --progress-end: #6666FF;
+    --success-start: #00D9A0;
+    --success-end: #00FF88;
+    --warning-start: #FFB84D;
+    --warning-end: #FF8800;
+    --error-start: #FF6B9D;
+    --error-end: #FF0066;
+
+    /* 高科技感变量 */
+    --particle-color: rgba(0, 217, 255, 0.3);
+    --particle-line-color: rgba(0, 217, 255, 0.1);
+    --grid-color: rgba(0, 217, 255, 0.15);
+    --grid-glow: rgba(0, 217, 255, 0.3);
+    --neon-cyan: rgba(0, 217, 255, 0.8);
+    --neon-blue: rgba(0, 153, 255, 0.8);
+    --neon-purple: rgba(102, 102, 255, 0.8);
+    --neon-glow-intensity: 30px;
+    --scan-color: rgba(0, 217, 255, 0.5);
+    --scan-speed: 2s;
+    --data-flow-color: rgba(0, 217, 255, 0.6);
+    --data-flow-speed: 1.5s;
+    --glitch-color-1: rgba(0, 217, 255, 0.8);
+    --glitch-color-2: rgba(255, 0, 102, 0.8);
+    --holo-opacity: 0.7;
+    --holo-blur: 10px;
   }
 
   /* 系统浅色主题媒体查询 */
   @media (prefers-color-scheme: light) {
     :root[data-theme="system"] {
-      --background: #FAFAFA;
-      --foreground: #333333;
+      --background: #F8FAFB;
+      --foreground: #1A1F29;
       --card-bg: #FFFFFF;
-      --card-border: #E0E0E0;
+      --card-border: #E1E5EA;
       --input-bg: #FFFFFF;
-      --input-border: #E0E0E0;
-      --input-focus: #409EFF;
-      --btn-primary: #409EFF;
-      --btn-primary-hover: #337ECC;
-      --btn-secondary: #F5F7FA;
-      --btn-secondary-hover: #E4E7ED;
-      --btn-danger: #F56C6C;
-      --btn-danger-hover: #D64A4A;
-      --scrollbar-track: #F5F5F5;
-      --scrollbar-thumb: #C0C4CC;
-      --scrollbar-thumb-hover: #A6A9AD;
-      --scrollbar-thumb-active: #909399;
+      --input-border: #D1D9E0;
+      --input-focus: #00B8D9;
+      --btn-primary: #00B8D9;
+      --btn-primary-hover: #0097B3;
+      --btn-secondary: #F1F4F7;
+      --btn-secondary-hover: #E1E5EA;
+      --btn-danger: #E91E63;
+      --btn-danger-hover: #C2185B;
+      --btn-oneclick-start: #0097B3;
+      --btn-oneclick-mid: #00B8D9;
+      --btn-oneclick-end: #00D9FF;
+      --btn-oneclick-start-hover: #00B8D9;
+      --btn-oneclick-mid-hover: #00D9FF;
+      --btn-oneclick-end-hover: #33E0FF;
+      --scrollbar-track: #F8FAFB;
+      --scrollbar-thumb: #D1D9E0;
+      --scrollbar-thumb-hover: #B1B9C0;
+      --scrollbar-thumb-active: #919BA3;
       --header-bg: #FFFFFF;
-      --header-border: #E0E0E0;
+      --header-bg-end: #F0F4F8;
+      --header-border: #E1E5EA;
       --log-bg: #FFFFFF;
-      --muted-text: #909399;
+      --muted-text: #6B7B8F;
       --dialog-bg: #FFFFFF;
+      --border-tech-start: #00B8D9;
+      --border-tech-end: #0066AA;
+      --progress-start: #00B8D9;
+      --progress-mid: #0088DD;
+      --progress-end: #5555DD;
+      --success-start: #00A878;
+      --success-end: #00DD66;
+      --warning-start: #F59E0B;
+      --warning-end: #DD7700;
+      --error-start: #E91E63;
+      --error-end: #DD0055;
+
+      /* 高科技感变量 */
+      --particle-color: rgba(0, 184, 217, 0.2);
+      --particle-line-color: rgba(0, 184, 217, 0.08);
+      --grid-color: rgba(0, 184, 217, 0.1);
+      --grid-glow: rgba(0, 184, 217, 0.2);
+      --neon-cyan: rgba(0, 184, 217, 0.6);
+      --neon-blue: rgba(0, 136, 221, 0.6);
+      --neon-purple: rgba(85, 85, 221, 0.6);
+      --neon-glow-intensity: 20px;
+      --scan-color: rgba(0, 184, 217, 0.4);
+      --scan-speed: 2s;
+      --data-flow-color: rgba(0, 184, 217, 0.5);
+      --data-flow-speed: 1.5s;
+      --glitch-color-1: rgba(0, 184, 217, 0.6);
+      --glitch-color-2: rgba(233, 30, 99, 0.6);
+      --holo-opacity: 0.5;
+      --holo-blur: 8px;
     }
   }
 
@@ -224,24 +360,38 @@
     color: var(--foreground);
   }
 
-  /* 一键部署按钮 - 渐变风格 */
+  /* 一键部署按钮 - 三色渐变科技风格 */
   .btn-oneclick {
     @apply flex items-center justify-center gap-2 w-full font-medium px-6 py-3 rounded-lg
            transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed
            shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
-    background: linear-gradient(135deg, var(--btn-oneclick-start, #667eea) 0%, var(--btn-oneclick-end, #764ba2) 100%);
+    background: linear-gradient(135deg,
+      var(--btn-oneclick-start, #00B8D9) 0%,
+      var(--btn-oneclick-mid, #00D9FF) 50%,
+      var(--btn-oneclick-end, #40E0FF) 100%);
     color: white;
     font-size: 0.9rem;
     letter-spacing: 0.5px;
+    background-size: 200% 200%;
   }
 
   .btn-oneclick:hover:not(:disabled) {
-    background: linear-gradient(135deg, var(--btn-oneclick-start-hover, #7c8ff5) 0%, var(--btn-oneclick-end-hover, #8a5cb8) 100%);
+    background: linear-gradient(135deg,
+      var(--btn-oneclick-start-hover, #00D9FF) 0%,
+      var(--btn-oneclick-mid-hover, #40E0FF) 50%,
+      var(--btn-oneclick-end-hover, #66E0FF) 100%);
+    background-size: 200% 200%;
+    animation: flow-gradient 3s ease infinite;
   }
 
   .btn-oneclick.deploying {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-    animation: pulse-glow 2s ease-in-out infinite;
+    background: linear-gradient(135deg,
+      var(--btn-oneclick-start, #00B8D9) 0%,
+      var(--btn-oneclick-mid, #00D9FF) 50%,
+      var(--btn-oneclick-end, #40E0FF) 100%);
+    background-size: 200% 200%;
+    animation: breathe-soft 3s ease-in-out infinite;
+    cursor: default;
   }
 
   .btn-oneclick .btn-text {
@@ -263,8 +413,46 @@
   .btn-oneclick .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.4); }
-    50% { box-shadow: 0 0 30px rgba(118, 75, 162, 0.6); }
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 217, 255, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(0, 217, 255, 0.5); }
+  }
+
+  @keyframes flow-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes pulse-deploy {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(0, 217, 255, 0.5);
+      transform: scale(1.02);
+    }
+  }
+
+  /* 部署中：柔和无缩放呼吸光晕 */
+  @keyframes breathe-soft {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(0, 217, 255, 0.12);
+    }
+    50% {
+      box-shadow: 0 0 16px rgba(0, 217, 255, 0.22);
+    }
+  }
+
+  @keyframes border-glow {
+    0%, 100% {
+      border-color: rgba(0, 217, 255, 0.5);
+      box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
+    }
+    50% {
+      border-color: rgba(0, 217, 255, 0.8);
+      box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+    }
   }
 
   @keyframes bounce-dot {
@@ -280,6 +468,179 @@
     animation: slide-down 0.3s ease-out;
   }
 
+  /* 科技边框渐变效果 */
+  .tech-border {
+    border: 2px solid transparent;
+    background: linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+                linear-gradient(90deg, var(--border-tech-start), var(--border-tech-end)) border-box;
+    animation: border-glow 3s ease-in-out infinite;
+  }
+
+  /* 粒子背景效果 - 修复交互问题 */
+  .particle-bg {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .particle-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+      radial-gradient(circle at 20% 30%, var(--particle-color) 2px, transparent 2px),
+      radial-gradient(circle at 80% 70%, var(--particle-color) 2px, transparent 2px),
+      radial-gradient(circle at 40% 50%, var(--particle-color) 1px, transparent 1px),
+      radial-gradient(circle at 60% 20%, var(--particle-color) 1px, transparent 1px),
+      radial-gradient(circle at 90% 40%, var(--particle-color) 2px, transparent 2px);
+    background-size: 200% 200%;
+    animation: particle-float 20s linear infinite;
+    opacity: 0.4;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* 科技网格背景效果 - 修复交互问题 */
+  .tech-grid-bg {
+    position: relative;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: grid-move 30s linear infinite;
+  }
+
+  .tech-grid-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+      linear-gradient(45deg, var(--grid-glow) 1px, transparent 1px),
+      linear-gradient(-45deg, var(--grid-glow) 1px, transparent 1px);
+    background-size: 100px 100px;
+    opacity: 0.2;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* 霓虹光晕效果 - 柔化版本 */
+  .neon-border {
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    box-shadow:
+      0 0 10px rgba(0, 217, 255, 0.2),
+      0 0 20px rgba(0, 153, 255, 0.15);
+    animation: neon-pulse-soft 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+  }
+
+  .neon-border:hover:not(:disabled) {
+    box-shadow:
+      0 0 15px rgba(0, 217, 255, 0.3),
+      0 0 25px rgba(0, 153, 255, 0.2);
+  }
+
+  .neon-glow {
+    box-shadow:
+      0 0 10px rgba(0, 217, 255, 0.2),
+      0 0 20px rgba(0, 153, 255, 0.15);
+    animation: neon-pulse-soft 3s ease-in-out infinite;
+  }
+
+  /* 扫描线动画效果 */
+  .scan-line {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scan-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent, var(--scan-color), transparent);
+    animation: scan-rotate var(--scan-speed) linear infinite;
+    transform-origin: center center;
+  }
+
+  /* 数据流效果 */
+  .data-flow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .data-flow::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--data-flow-color) 50%,
+      transparent 100%);
+    animation: data-stream var(--data-flow-speed) linear infinite;
+    opacity: 0.4;
+  }
+
+  /* Glitch 效果 */
+  .glitch-text {
+    position: relative;
+    animation: glitch 3s infinite;
+  }
+
+  .glitch-text::before,
+  .glitch-text::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .glitch-text::before {
+    color: var(--glitch-color-1);
+    animation: glitch-1 2s infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  }
+
+  .glitch-text::after {
+    color: var(--glitch-color-2);
+    animation: glitch-2 2s infinite;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  }
+
+  /* 全息效果 */
+  .holo-effect {
+    background: rgba(0, 217, 255, var(--holo-opacity));
+    backdrop-filter: blur(var(--holo-blur));
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    box-shadow:
+      0 0 20px rgba(0, 217, 255, 0.2),
+      inset 0 0 20px rgba(0, 217, 255, 0.1);
+  }
+
+  /* 进度条流动渐变效果 */
+  .progress-bar {
+    background: linear-gradient(90deg,
+      var(--progress-start, #00D9FF) 0%,
+      var(--progress-mid, #0099FF) 50%,
+      var(--progress-end, #6666FF) 100%);
+    background-size: 200% 100%;
+    animation: flow-progress 2s linear infinite;
+  }
+
+  @keyframes flow-progress {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
   @keyframes slide-down {
     from {
       opacity: 0;
@@ -289,5 +650,85 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* 粒子浮动动画 */
+  @keyframes particle-float {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+  }
+
+  /* 网格移动动画 */
+  @keyframes grid-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 50px 50px; }
+  }
+
+  /* 霓虹脉冲动画 - 柔化版本 */
+  @keyframes neon-pulse-soft {
+    0%, 100% {
+      box-shadow:
+        0 0 10px rgba(0, 217, 255, 0.2),
+        0 0 20px rgba(0, 153, 255, 0.15);
+    }
+    50% {
+      box-shadow:
+        0 0 12px rgba(0, 217, 255, 0.25),
+        0 0 22px rgba(0, 153, 255, 0.18);
+    }
+  }
+
+  /* 霓虹脉冲动画 - 原始版本（保留） */
+  @keyframes neon-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 var(--neon-glow-intensity) var(--neon-cyan),
+        0 0 60px var(--neon-blue),
+        inset 0 0 var(--neon-glow-intensity) var(--neon-cyan);
+    }
+    50% {
+      box-shadow:
+        0 0 40px var(--neon-cyan),
+        0 0 80px var(--neon-blue),
+        inset 0 0 40px var(--neon-cyan);
+    }
+  }
+
+  /* 扫描旋转动画 */
+  @keyframes scan-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* 数据流动动画 */
+  @keyframes data-stream {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Glitch 动画 */
+  @keyframes glitch {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+  }
+
+  @keyframes glitch-1 {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(-3px, 0); }
+    40% { transform: translate(3px, 0); }
+    60% { transform: translate(-3px, 0); }
+    80% { transform: translate(3px, 0); }
+  }
+
+  @keyframes glitch-2 {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(3px, 0); }
+    40% { transform: translate(-3px, 0); }
+    60% { transform: translate(3px, 0); }
+    80% { transform: translate(-3px, 0); }
   }
 }

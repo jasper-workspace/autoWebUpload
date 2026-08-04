@@ -388,6 +388,24 @@ export interface BackendConfig extends DeployTargetConfig {
 
   /** 自定义 Java 路径（可选，留空则使用系统默认 Java） */
   javaPath?: string;
+
+  /** 是否上传 sourcemap 文件，默认 false（不上传） */
+  uploadSourcemap: boolean;
+
+  /** 是否保留已部署 jar 包（上传前重命名旧 jar），默认 true */
+  keepDeployedJar: boolean;
+}
+
+/**
+ * 文件上传扩展选项
+ * - 由后端部署配置透传，控制 sourcemap 过滤与 jar 备份行为
+ */
+export interface UploadFolderOptions {
+  /** 是否上传 sourcemap 文件，默认 false（不上传） */
+  uploadSourcemap?: boolean;
+
+  /** 是否保留已部署 jar 包（上传前重命名旧 jar），默认 true */
+  keepDeployedJar?: boolean;
 }
 
 // ==================== 服务器验证类型 ====================

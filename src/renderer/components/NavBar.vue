@@ -1,6 +1,7 @@
 <template>
   <header
-    class="h-16 flex-shrink-0 bg-[var(--header-bg)] border-b border-[var(--header-border)] flex items-center px-6 z-50">
+    class="h-16 flex-shrink-0 border-b border-[var(--header-border)] flex items-center px-6 z-50 tech-grid-bg"
+    style="background: linear-gradient(to bottom, var(--header-bg), var(--header-bg-end));">
     <!-- 左侧：服务器选择器 -->
     <div v-if="showServerSelector" class="flex items-center flex-shrink-0">
       <ServerSelector v-model="serverStore.selectedServerId" />
@@ -11,7 +12,7 @@
       <router-link to="/" :class="[
         'px-6 py-2 rounded-lg font-medium transition-all duration-200',
         isRouteActive('/')
-          ? 'bg-[#409EFF] text-white'
+          ? 'bg-[var(--btn-primary)] text-white'
           : 'text-[var(--muted-text)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)]'
       ]">
         文件部署
@@ -19,7 +20,7 @@
       <router-link to="/logs" :class="[
         'px-6 py-2 rounded-lg font-medium transition-all duration-200',
         isRouteActive('/logs')
-          ? 'bg-[#409EFF] text-white'
+          ? 'bg-[var(--btn-primary)] text-white'
           : 'text-[var(--muted-text)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)]'
       ]">
         终端
@@ -27,7 +28,7 @@
       <router-link to="/config" :class="[
         'px-6 py-2 rounded-lg font-medium transition-all duration-200',
         isRouteActive('/config')
-          ? 'bg-[#409EFF] text-white'
+          ? 'bg-[var(--btn-primary)] text-white'
           : 'text-[var(--muted-text)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)]'
       ]">
         服务器配置
@@ -35,7 +36,7 @@
       <router-link to="/settings" :class="[
         'p-2 rounded-lg transition-all duration-200 flex items-center justify-center',
         isRouteActive('/settings')
-          ? 'bg-[#409EFF] text-white'
+          ? 'bg-[var(--btn-primary)] text-white'
           : 'text-[var(--muted-text)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)]'
       ]" title="系统设置">
         <Settings class="w-5 h-5" />

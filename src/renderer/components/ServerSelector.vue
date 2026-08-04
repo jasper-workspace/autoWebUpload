@@ -42,7 +42,7 @@
             class="w-full px-4 py-4 text-left text-sm hover:bg-[var(--scrollbar-thumb-hover)] transition-colors flex flex-col gap-1"
             :class="
               modelValue === server.id
-                ? 'bg-[#409EFF]/10 text-[#409EFF]'
+                ? 'bg-[var(--btn-primary)]/10 text-[var(--btn-primary)]'
                 : 'text-[var(--foreground)]'
             ">
             <span class="font-medium">{{ server.name }}</span>
