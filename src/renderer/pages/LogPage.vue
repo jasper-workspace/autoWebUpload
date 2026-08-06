@@ -11,8 +11,8 @@
               :class="[
                 'px-2 py-0.5 rounded text-xs font-medium',
                 isConnected
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-gray-500/20 text-gray-400'
+                  ? 'bg-success-soft text-success'
+                  : 'bg-muted-soft text-muted'
               ]"
             >
               {{ isConnected ? '已连接' : '未连接' }}
@@ -59,7 +59,7 @@
               <button
                 v-if="isViewingLog"
                 @click="stopLog"
-                class="btn-danger w-full text-left px-3 py-2 text-xs rounded border border-red-500/50 hover:bg-red-500/20 transition-colors"
+                class="btn-danger w-full text-left px-3 py-2 text-xs rounded border border-error-soft hover:bg-error-soft transition-colors"
               >
                 <span>停止日志</span>
                 <span class="block text-[var(--muted-text)] truncate">中断实时日志</span>
@@ -72,7 +72,7 @@
                   :disabled="!isConnected"
                   class="btn-secondary w-full text-left px-3 py-2 text-xs rounded border border-[var(--card-border)] hover:bg-[var(--card-border)] transition-colors"
                 >
-                  <span class="text-blue-400">前端日志</span>
+                  <span class="text-info">前端日志</span>
                   <span class="block text-[var(--muted-text)] truncate" :title="selectedServer.frontend.logCommand">
                     {{ selectedServer.frontend.logCommand }}
                   </span>
@@ -150,7 +150,7 @@
               <span v-if="selectedServer" class="text-xs text-[var(--muted-text)]">
                 {{ selectedServer.name }}
               </span>
-              <span v-if="isConnected" class="text-xs text-green-400">
+              <span v-if="isConnected" class="text-xs text-success">
                 ● 已连接
               </span>
             </div>

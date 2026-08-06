@@ -2,25 +2,25 @@
   <div v-if="updateInfo" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click="handleClose">
     <div class="card p-6 max-w-md w-full mx-4" @click.stop>
       <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-          <div class="w-6 h-6 rounded-full bg-blue-500"></div>
+        <div class="w-10 h-10 rounded-full bg-info-soft flex items-center justify-center">
+          <div class="w-6 h-6 rounded-full bg-info"></div>
         </div>
         <h3 class="text-lg font-semibold">发现新版本</h3>
       </div>
       
       <div class="space-y-4 mb-6">
         <div class="flex justify-between items-center">
-          <span class="text-sm text-[#8C8C8C]">当前版本</span>
+          <span class="text-sm text-muted">当前版本</span>
           <span class="text-sm font-medium">{{ updateInfo.currentVersion }}</span>
         </div>
         <div class="flex justify-between items-center">
-          <span class="text-sm text-[#8C8C8C]">最新版本</span>
-          <span class="text-sm font-medium text-blue-500">{{ updateInfo.latestVersion }}</span>
+          <span class="text-sm text-muted">最新版本</span>
+          <span class="text-sm font-medium text-info">{{ updateInfo.latestVersion }}</span>
         </div>
         
         <div class="mt-4">
           <h4 class="text-sm font-medium mb-2">更新内容</h4>
-          <div class="bg-[#1E1E1E] p-3 rounded-md overflow-y-auto max-h-40 text-sm text-[#E0E0E0]">
+          <div class="bg-[var(--input-bg)] p-3 rounded-md overflow-y-auto max-h-40 text-sm text-[var(--foreground)]">
             <pre class="whitespace-pre-wrap">{{ updateInfo.releaseInfo?.body || '暂无更新信息' }}</pre>
           </div>
         </div>
@@ -54,8 +54,8 @@
     <div v-if="showProgressDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
       <div class="card p-6 max-w-sm w-full mx-4">
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-500 animate-spin" viewBox="0 0 24 24" fill="none">
+          <div class="w-10 h-10 rounded-full bg-info-soft flex items-center justify-center">
+            <svg class="w-5 h-5 text-info animate-spin" viewBox="0 0 24 24" fill="none">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
@@ -68,9 +68,9 @@
             <span class="text-[var(--muted-text)]">{{ downloadProgress.received.toFixed(2) }} MB</span>
             <span class="text-[var(--muted-text)]">{{ downloadProgress.total.toFixed(2) }} MB</span>
           </div>
-          <div class="w-full bg-[#1E1E1E] rounded-full h-2 overflow-hidden">
+          <div class="w-full bg-[var(--input-bg)] rounded-full h-2 overflow-hidden">
             <div
-              class="h-full bg-blue-500 rounded-full transition-all duration-300"
+              class="h-full bg-info rounded-full transition-all duration-300"
               :style="{ width: `${downloadProgress.percentage}%` }"
             ></div>
           </div>

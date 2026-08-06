@@ -15,7 +15,8 @@ import { mavenExecutor } from '../services/mavenExecutor';
 import { multiMicroserviceOrchestrator } from '../services/multiMicroserviceOrchestrator';
 import { ServerValidator } from '../services/serverValidator';
 import { createLogger } from '../logger';
-import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig, MicroserviceConfig, MicroserviceBuildProgress, ServerValidationResult, ConfigTemplate, ImportConfigOptions, ImportConfigResult } from '../../shared/types';
+import type { ServerConfig, UploadProgress, TerminalConnectOptions, TerminalResizeOptions, BuildConfig, MicroserviceConfig, MicroserviceBuildProgress, ServerValidationResult, ConfigTemplate, ImportConfigOptions, ImportConfigResult, DeploymentOptions, UploadFolderOptions } from '../../shared/types';
+import { DEFAULT_DEPLOYMENT_OPTIONS } from '../../shared/types';
 import crypto from 'crypto';
 
 // 获取 electron-store 的存储路径
@@ -38,6 +39,19 @@ const updateService = new UpdateService(app.getVersion());
 let localBuildService: LocalBuildService | null = null;
 let deployOrchestrator: DeployOrchestrator | null = null;
 let isDeploying = false;
+
+/**
+ * 构造上传选项：合并全局「部署选项」
+ */
+function buildUploadOptions(): UploadFolderOptions {
+  const deployment = appStore.get('deployment', {}) as Partial<DeploymentOptions>;
+  return {
+    uploadSourcemap: deployment.uploadSourcemap ?? DEFAULT_DEPLOYMENT_OPTIONS.uploadSourcemap,
+    keepDeployedJar: deployment.keepDeployedJar ?? DEFAULT_DEPLOYMENT_OPTIONS.keepDeployedJar,
+    keepJarCount: Math.min(9, Math.max(0, Math.floor(Number(deployment.keepJarCount) || 0))),
+    deleteBesFiles: deployment.deleteBesFiles ?? DEFAULT_DEPLOYMENT_OPTIONS.deleteBesFiles,
+  };
+}
 
 /**
  * 下载文件到本地（支持进度报告和取消）
@@ -372,6 +386,31 @@ export function setupIpcHandlers() {
     return config;
   });
 
+  // ==================== 全局部署选项 ====================
+
+  // 获取部署选项
+  ipcMain.handle('get-deployment-config', () => {
+    const deployment = appStore.get('deployment', {}) as Partial<DeploymentOptions>;
+    return {
+      uploadSourcemap: deployment.uploadSourcemap ?? DEFAULT_DEPLOYMENT_OPTIONS.uploadSourcemap,
+      keepDeployedJar: deployment.keepDeployedJar ?? DEFAULT_DEPLOYMENT_OPTIONS.keepDeployedJar,
+      keepJarCount: Math.min(9, Math.max(0, Math.floor(Number(deployment.keepJarCount) || 0))),
+      deleteBesFiles: deployment.deleteBesFiles ?? DEFAULT_DEPLOYMENT_OPTIONS.deleteBesFiles,
+    } as DeploymentOptions;
+  });
+
+  // 保存部署选项（校验 keepJarCount 范围 0-9）
+  ipcMain.handle('save-deployment-config', (_, config: DeploymentOptions) => {
+    const normalized: DeploymentOptions = {
+      uploadSourcemap: !!config?.uploadSourcemap,
+      keepDeployedJar: config?.keepDeployedJar !== false,
+      keepJarCount: Math.min(9, Math.max(0, Math.floor(Number(config?.keepJarCount) || 0))),
+      deleteBesFiles: !!config?.deleteBesFiles,
+    };
+    appStore.set('deployment', normalized);
+    return normalized;
+  });
+
   // 删除配置
   ipcMain.handle('delete-config', (_, id: string) => {
     const servers = store.get('servers', []) as ServerConfig[];
@@ -434,10 +473,13 @@ export function setupIpcHandlers() {
         win?.webContents.send('upload-progress', progress);
       };
 
-      await sftpService.uploadFolder(localPath, config.remotePath!, onProgress, {
-        uploadSourcemap: config.backend?.uploadSourcemap ?? false,
-        keepDeployedJar: config.backend?.keepDeployedJar ?? true
-      });
+      // 部署步骤日志回传：经专用通道发往渲染端「操作日志」面板（同时仍写文件）
+      const options = buildUploadOptions();
+      options.onLog = (message: string, type?: 'info' | 'error' | 'warning' | 'success' | 'config') => {
+        win?.webContents.send('upload-log', { message, type: type ?? 'info' });
+      };
+
+      await sftpService.uploadFolder(localPath, config.remotePath!, onProgress, options);
 
       // 执行后续命令
       if (config.postUploadCommand) {
@@ -1005,7 +1047,7 @@ export function setupIpcHandlers() {
         }
       });
 
-      const result = await deployOrchestrator!.executeOneClickDeploy(config, buildConfig);
+      const result = await deployOrchestrator!.executeOneClickDeploy(config, buildConfig, buildUploadOptions());
       return result;
     } catch (error: any) {
       logger.error('一键部署失败', error);
@@ -1109,8 +1151,6 @@ export function setupIpcHandlers() {
           remotePath: '',
           microservices: [],
           rootPath: '',
-          uploadSourcemap: false,
-          keepDeployedJar: true,
         };
       }
       configs[index].backend!.microservices = config.microservices;
@@ -1201,7 +1241,8 @@ export function setupIpcHandlers() {
         (progress: MicroserviceBuildProgress) => {
           // 发送进度到渲染进程
           webContents?.webContents.send('microservice:build-progress', progress);
-        }
+        },
+        buildUploadOptions()
       );
 
       console.log('[handlers] orchestrator.deployAll 返回', { result });

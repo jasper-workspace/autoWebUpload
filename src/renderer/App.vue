@@ -23,6 +23,9 @@
       <!-- 全局通知组件 -->
       <NotificationDialog ref="notificationRef" />
 
+      <!-- 全局确认对话框 -->
+      <ConfirmDialog ref="confirmRef" />
+
       <!-- 更新提示弹窗 -->
       <UpdateDialog
         :update-info="updateInfo"
@@ -39,13 +42,16 @@ import { useRoute } from 'vue-router';
 import NavBar from './components/NavBar.vue';
 import ServerSelector from './components/ServerSelector.vue';
 import NotificationDialog from './components/NotificationDialog.vue';
+import ConfirmDialog from './components/ConfirmDialog.vue';
 import UpdateDialog from './components/UpdateDialog.vue';
 import { useServerStore } from './stores/server';
 import { registerNotification, type NotificationComponent } from './utils/notification';
+import { registerConfirm, type ConfirmComponent } from './utils/confirm';
 import { logger } from './utils/logger';
 
 const navbarRef = ref<InstanceType<typeof NavBar> | null>(null);
 const notificationRef = ref<NotificationComponent | null>(null);
+const confirmRef = ref<ConfirmComponent | null>(null);
 const route = useRoute();
 const serverStore = useServerStore();
 
@@ -120,6 +126,9 @@ onMounted(() => {
   nextTick(() => {
     if (notificationRef.value) {
       registerNotification(notificationRef.value);
+    }
+    if (confirmRef.value) {
+      registerConfirm(confirmRef.value);
     }
   });
 });

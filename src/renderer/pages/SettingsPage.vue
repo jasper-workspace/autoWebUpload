@@ -11,7 +11,7 @@
           <h3
             class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
             <div
-              class="w-4 h-4 rounded bg-gradient-to-br from-purple-400 to-purple-600"></div>
+              class="w-4 h-4 rounded bg-gradient-to-br from-[var(--border-tech-start)] to-[var(--border-tech-end)]"></div>
             主题设置
           </h3>
           <div class="space-y-4">
@@ -58,7 +58,7 @@
           <h3
             class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
             <div
-              class="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-blue-600"></div>
+              class="w-4 h-4 rounded bg-gradient-to-br from-[var(--border-tech-start)] to-[var(--border-tech-end)]"></div>
             更新设置
           </h3>
           <div class="space-y-4">
@@ -90,12 +90,84 @@
           </div>
         </div>
 
+        <!-- 部署选项（全局） -->
+        <div class="section">
+          <h3
+            class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
+            <div
+              class="w-4 h-4 rounded bg-gradient-to-br from-[var(--border-tech-start)] to-[var(--border-tech-end)]"></div>
+            部署选项
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                关闭时不上传 sourcemap 文件
+              </label>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="deployUploadSourcemap"
+                  type="checkbox"
+                  class="accent-[var(--btn-primary)]" />
+                <span class="text-[var(--foreground)]">是否上传 sourcemap</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                勾选时上传前备份旧 jar 包
+              </label>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="deployKeepDeployedJar"
+                  type="checkbox"
+                  class="accent-[var(--btn-primary)]" />
+                <span class="text-[var(--foreground)]">是否保留已部署 jar 包</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                0=不处理；1-9=上传成功后保留最新的同名 jar 包数量
+              </label>
+              <div class="flex items-center gap-3">
+                <span class="text-[var(--foreground)]">远端保留 jar 包数量</span>
+                <input
+                  v-model.number="deployKeepJarCount"
+                  type="number"
+                  min="0"
+                  max="9"
+                  class="input-field w-32"
+                  placeholder="0" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">
+                勾选时上传前清理远端目录下的 bes.* 文件
+              </label>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="deployDeleteBesFiles"
+                  type="checkbox"
+                  class="accent-[var(--btn-primary)]" />
+                <span class="text-[var(--foreground)]">上传前删除 bes.* 文件</span>
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <button @click="saveDeploymentOptions" class="text-sm btn-primary">
+                保存部署选项
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 3. 关于 -->
         <div class="section">
           <h3
             class="text-md font-semibold text-[var(--btn-primary)] mb-4 flex items-center gap-2">
             <div
-              class="w-4 h-4 rounded bg-gradient-to-br from-green-400 to-green-600"></div>
+              class="w-4 h-4 rounded bg-gradient-to-br from-[var(--border-tech-start)] to-[var(--border-tech-end)]"></div>
             关于
           </h3>
           <div class="space-y-3 text-sm">
@@ -137,6 +209,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { showSuccess, showError } from "../utils/notification";
+import { showConfirm } from "../utils/confirm";
 import UpdateDialog from "../components/UpdateDialog.vue";
 
 // 主题相关
@@ -148,6 +221,54 @@ const lastCheckTime = ref("");
 const updateInfo = ref<any>(null);
 const appVersion = ref("1.0.0");
 const appAuthor = ref("");
+
+// 部署选项（全局）
+const deployUploadSourcemap = ref(false);
+const deployKeepDeployedJar = ref(true);
+const deployKeepJarCount = ref(0);
+const deployDeleteBesFiles = ref(false);
+
+// 加载部署选项
+async function loadDeploymentOptions() {
+  try {
+    const config = await window.electronAPI.getDeploymentConfig();
+    deployUploadSourcemap.value = config.uploadSourcemap !== false;
+    deployKeepDeployedJar.value = config.keepDeployedJar !== false;
+    deployKeepJarCount.value = Math.min(9, Math.max(0, Math.floor(Number(config.keepJarCount) || 0)));
+    deployDeleteBesFiles.value = !!config.deleteBesFiles;
+  } catch (error) {
+    console.error("加载部署选项失败:", error);
+  }
+}
+
+// 保存部署选项
+async function saveDeploymentOptions() {
+  // 风险告知：开启了任何破坏性选项时二次确认
+  if (deployKeepJarCount.value > 0 || deployDeleteBesFiles.value) {
+    const confirmed = await showConfirm({
+      type: "warning",
+      title: "风险提示",
+      message: "部署选项包含破坏性操作（远端 jar 包清理 / 删除 bes 文件）。确认保存并应用？",
+      confirmText: "确认保存",
+      cancelText: "取消",
+    });
+    if (!confirmed) {
+      return;
+    }
+  }
+  try {
+    await window.electronAPI.saveDeploymentConfig({
+      uploadSourcemap: deployUploadSourcemap.value,
+      keepDeployedJar: deployKeepDeployedJar.value,
+      keepJarCount: Math.min(9, Math.max(0, Math.floor(Number(deployKeepJarCount.value) || 0))),
+      deleteBesFiles: deployDeleteBesFiles.value,
+    });
+    showSuccess("操作成功", "部署选项已保存！");
+  } catch (error) {
+    console.error("保存部署选项失败:", error);
+    showError("操作失败", "保存部署选项失败，请重试");
+  }
+}
 
 // 更新主题
 async function updateTheme() {
@@ -257,6 +378,7 @@ onMounted(async () => {
   loadThemeConfig();
   loadUpdateConfig();
   loadAuthorAndVersionInfo();
+  loadDeploymentOptions();
 });
 </script>
 

@@ -3,6 +3,28 @@ import { Client as SSHClient } from 'ssh2';
 import fs from 'fs/promises';
 import path from 'path';
 import type { ServerConfig, UploadProgress, UploadFolderOptions } from '../../shared/types';
+import { logger } from '../logger';
+import { logDeploymentCommand, logDeploymentResult } from './deploymentLog';
+
+/** 日志级别 */
+type LogType = 'info' | 'error' | 'warning' | 'success' | 'config';
+
+/** 统一日志出口：消息 + 级别 */
+type LogSink = (message: string, type?: LogType) => void;
+
+/**
+ * 仅写入文件的兜底日志（electron-log）。
+ * 当调用方未提供 onLog（如脱离上传流程单独调用清理方法）时回退使用，保证不丢日志。
+ */
+const fileOnlyLog: LogSink = (message, type = 'info') => {
+  if (type === 'error') {
+    logger.error(message);
+  } else if (type === 'warning') {
+    logger.warn(message);
+  } else {
+    logger.info(message);
+  }
+};
 
 export class SFTPService {
   private sftpClient: InstanceType<typeof Client>;
@@ -49,7 +71,67 @@ export class SFTPService {
   ): Promise<void> {
     // 检查路径是文件还是目录
     const stats = await fs.stat(localPath);
-    
+    // 远程目录：目录上传时为 remotePath；单文件上传时取「remotePath + 文件名」所在目录，
+    // 这样即使 remotePath 本身是目录也能正确落到文件实际部署的目录（避免多上一层）
+    const remoteDir = stats.isFile()
+      ? path.posix.dirname(path.posix.join(remotePath, path.basename(localPath)))
+      : remotePath;
+
+    // 统一日志出口：同时写入文件并向渲染端操作日志面板（通过 options.onLog）发送，
+    // 保证「新增部署设置只扩展描述符」的好处延续到面板（开闭原则）
+    const emitLog: LogSink = (message, type = 'info') => {
+      fileOnlyLog(message, type);
+      options?.onLog?.(message, type);
+    };
+
+    // 读取部署配置：每项作为「命令 + 操作结果」完整执行单元就近打印
+    emitLog('读取部署配置', 'config');
+
+    // 延迟项打印标记（避免目录上传多 jar / 多文件时重复输出命令行）
+    let keepDeployedJarPrinted = false;
+    let jarCountOptionPrinted = false;
+
+    // 收尾：对启用但因本次无对应文件而未执行的延迟项，补打「操作结果: 未执行」
+    const flushDeferredNoOps = (): void => {
+      if (options?.keepDeployedJar !== false && !keepDeployedJarPrinted) {
+        logDeploymentCommand(emitLog, options, 'keepDeployedJar');
+        logDeploymentResult(emitLog, '未执行（本次上传无 jar 包）');
+        keepDeployedJarPrinted = true;
+      }
+      if ((options?.keepJarCount ?? 0) > 0 && !jarCountOptionPrinted) {
+        logDeploymentCommand(emitLog, options, 'keepJarCount');
+        logDeploymentResult(emitLog, '未执行（本次上传无 jar 包）');
+        jarCountOptionPrinted = true;
+      }
+    };
+
+    // 是否上传 sourcemap：静态设置，单位完整打印
+    logDeploymentCommand(emitLog, options, 'uploadSourcemap');
+    logDeploymentResult(
+      emitLog,
+      options?.uploadSourcemap === true ? '已开启（上传时包含 .map 文件）' : '未执行（已关闭，跳过 .map 文件）'
+    );
+
+    // 是否保留已部署 jar 包：关闭时顶部打印未执行；开启时推迟到首次备份时打印命令与结果
+    if (options?.keepDeployedJar === false) {
+      logDeploymentCommand(emitLog, options, 'keepDeployedJar');
+      logDeploymentResult(emitLog, '未执行（已关闭）');
+    }
+
+    // 删除远端 bes 文件：立即执行清理，命令与结果相邻
+    logDeploymentCommand(emitLog, options, 'deleteBesFiles');
+    if (options?.deleteBesFiles) {
+      await this.cleanBesFiles(remoteDir, emitLog);
+    } else {
+      logDeploymentResult(emitLog, '未执行（已关闭）');
+    }
+
+    // 远端保留 jar 数量：<=0 时顶部打印未执行；>0 时推迟到清理时打印命令与结果
+    if ((options?.keepJarCount ?? 0) <= 0) {
+      logDeploymentCommand(emitLog, options, 'keepJarCount');
+      logDeploymentResult(emitLog, '未执行（保留数量=0）');
+    }
+
     if (stats.isFile()) {
       // 处理单个文件上传
       const fileName = path.basename(localPath);
@@ -57,6 +139,8 @@ export class SFTPService {
 
       // sourcemap 过滤：开关关闭时跳过 .map 文件
       if (this.isSourcemapFile(fileName) && options?.uploadSourcemap !== true) {
+        emitLog(`跳过 sourcemap 文件: ${fileName}（配置未开启上传）`);
+        flushDeferredNoOps();
         onProgress({
           totalFiles: 1,
           uploadedFiles: 1,
@@ -92,16 +176,32 @@ export class SFTPService {
       }, 1000); // 每1000ms(1秒)更新一次
       
       try {
-        // jar 备份：上传前重命名远程同名 jar
+        // jar 备份：上传前重命名远程同名 jar（keepDeployedJar 开启时，命令与结果就近打印）
         if (this.isJarFile(fileName) && options?.keepDeployedJar !== false) {
           if (await this.sftpClient.exists(remoteFilePath)) {
-            await this.backupRemoteJar(remoteFilePath);
+            if (!keepDeployedJarPrinted) {
+              logDeploymentCommand(emitLog, options, 'keepDeployedJar');
+              keepDeployedJarPrinted = true;
+            }
+            logDeploymentResult(emitLog, `备份已部署 jar 包: ${remoteFilePath}`);
+            await this.backupRemoteJar(remoteFilePath, emitLog);
           }
         }
 
         // 上传单个文件
+        emitLog('上传中...');
         await this.sftpClient.put(localPath, remoteFilePath);
-        
+        emitLog('上传完成');
+
+        // REQ004: 上传成功后按保留数量清理历史同名 jar 备份（keepJarCount>0 时，命令与结果就近打印）
+        if (this.isJarFile(fileName) && (options?.keepJarCount ?? 0) > 0) {
+          if (!jarCountOptionPrinted) {
+            logDeploymentCommand(emitLog, options, 'keepJarCount');
+            jarCountOptionPrinted = true;
+          }
+          await this.pruneOldJars(remoteDir, fileName, options, emitLog);
+        }
+
         // 清除模拟进度定时器
         clearInterval(progressInterval);
         
@@ -127,6 +227,7 @@ export class SFTPService {
         throw error;
       }
       
+      flushDeferredNoOps();
       return;
     }
     
@@ -154,6 +255,7 @@ export class SFTPService {
     }
 
     // 再上传所有文件
+    emitLog(`开始上传文件（共 ${files.length} 个）...`);
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const relativePath = path.relative(localPath, file);
@@ -162,6 +264,7 @@ export class SFTPService {
 
       // sourcemap 过滤：开关关闭时跳过 .map 文件
       if (this.isSourcemapFile(fileName) && options?.uploadSourcemap !== true) {
+        emitLog(`跳过 sourcemap 文件: ${relativePath}（配置未开启上传）`);
         onProgress({
           totalFiles: files.length,
           uploadedFiles: i + 1,
@@ -176,15 +279,29 @@ export class SFTPService {
       const remoteDir = path.posix.dirname(remoteFilePath);
       await this.sftpClient.mkdir(remoteDir, true);
 
-      // jar 备份：上传前重命名远程同名 jar
+      // jar 备份：上传前重命名远程同名 jar（keepDeployedJar 开启时，命令与结果就近打印）
       if (this.isJarFile(fileName) && options?.keepDeployedJar !== false) {
         if (await this.sftpClient.exists(remoteFilePath)) {
-          await this.backupRemoteJar(remoteFilePath);
+          if (!keepDeployedJarPrinted) {
+            logDeploymentCommand(emitLog, options, 'keepDeployedJar');
+            keepDeployedJarPrinted = true;
+          }
+          logDeploymentResult(emitLog, `备份已部署 jar 包: ${remoteFilePath}`);
+          await this.backupRemoteJar(remoteFilePath, emitLog);
         }
       }
 
       // 上传文件
       await this.sftpClient.fastPut(file, remoteFilePath);
+
+      // REQ004: 上传成功后按保留数量清理历史同名 jar 备份（keepJarCount>0 时，命令与结果就近打印）
+      if (this.isJarFile(fileName) && (options?.keepJarCount ?? 0) > 0) {
+        if (!jarCountOptionPrinted) {
+          logDeploymentCommand(emitLog, options, 'keepJarCount');
+          jarCountOptionPrinted = true;
+        }
+        await this.pruneOldJars(remoteDir, fileName, options, emitLog);
+      }
 
       onProgress({
         totalFiles: files.length,
@@ -194,6 +311,11 @@ export class SFTPService {
         status: 'uploading'
       });
     }
+
+    // 收尾：对启用但因本次无 jar 包而未执行的延迟项，补打「操作结果: 未执行」
+    flushDeferredNoOps();
+
+    emitLog('文件上传完成');
 
     onProgress({
       totalFiles: files.length,
@@ -397,7 +519,7 @@ export class SFTPService {
    * 规则：首个备份为 *.jarMMDD；若该名已存在则追加递增序号 *.jarMMDD_1、*.jarMMDD_2...
    * @param remoteFilePath 远程原始 jar 文件路径
    */
-  private async backupRemoteJar(remoteFilePath: string): Promise<void> {
+  private async backupRemoteJar(remoteFilePath: string, logFn: LogSink = fileOnlyLog): Promise<void> {
     // 取远程原 jar 的更新时间作为备份日期；获取失败时回退到当前日期
     let backupDate = new Date();
     try {
@@ -448,5 +570,89 @@ export class SFTPService {
     }
 
     return { files, dirs };
+  }
+
+  /**
+   * REQ004: 上传前清理远端「目标目录」下的 bes.* 文件/目录
+   * - 仅清理传入的 remoteDir 本身（即本次部署的目标目录），不递归进入其子目录，
+   *   避免误删目标目录之外其他子目录里的 bes 文件
+   * - 匹配以 bes 开头、后接分隔符（. _ -）的条目，如 bes.5731.9809 / bes.log / bes_domain.log
+   * - bes 可能是文件也可能是目录：文件用 delete，目录用 rmdir(fullPath, true) 整目录删除（库内部递归清空内容）
+   */
+  private async cleanBesFiles(remoteDir: string, logFn: LogSink = fileOnlyLog): Promise<void> {
+    try {
+      const list = await this.sftpClient.list(remoteDir) as Array<{ type: string; name: string }>;
+      const besEntries = list.filter((f) => /^bes[.\-_]/i.test(f.name));
+      if (besEntries.length === 0) {
+        logFn('操作结果: 未执行（目标目录下不存在 bes 文件）', 'config');
+        return;
+      }
+      for (const f of besEntries) {
+        const fullPath = path.posix.join(remoteDir, f.name);
+        if (f.type === 'd') {
+          await this.sftpClient.rmdir(fullPath, true);
+        } else {
+          await this.sftpClient.delete(fullPath);
+        }
+        logFn(`操作结果: 已删除 bes 文件: ${fullPath}`, 'config');
+      }
+    } catch (error: any) {
+      logFn(`操作结果: 清理失败 (${remoteDir}): ${error?.message || error}`, 'error');
+    }
+  }
+
+  /**
+   * 计算 jar 文件的时间排序键（越大越新）
+   * - 活动 jar（无后缀）视为最新
+   * - 备份 jar 按后缀 MMDD 降序、_n 序号降序
+   */
+  private jarTimeKey(name: string, activeName: string): number {
+    if (name === activeName) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    const m = name.match(/(\d{4})(?:_(\d+))?$/);
+    if (!m) {
+      return 0;
+    }
+    const mmdd = parseInt(m[1], 10);
+    const seq = m[2] ? parseInt(m[2], 10) : 0;
+    return mmdd * 100 + seq;
+  }
+
+  /**
+   * REQ004: 上传成功后按保留数量清理历史同名 jar 备份
+   * - 活动 jar（无后缀）始终保留，且不占用 keepJarCount 名额
+   * - 在备份中按时间降序保留最新 keepJarCount 个，其余删除
+   */
+  private async pruneOldJars(remoteDir: string, activeFileName: string, options?: UploadFolderOptions, logFn: LogSink = fileOnlyLog): Promise<void> {
+    const keep = options?.keepJarCount ?? 0;
+    if (keep <= 0) {
+      logFn('操作结果: 未执行（保留数量=0，不进行清理）', 'config');
+      return;
+    }
+    try {
+      const list = await this.sftpClient.list(remoteDir) as Array<{ type: string; name: string }>;
+      const escaped = activeFileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`^${escaped}(\\d{4}(_\\d+)?)?$`);
+      const matches = list.filter((f) => f.type === '-' && regex.test(f.name));
+      logFn(`操作结果: 当前历史 jar 数量: ${matches.length}`, 'config');
+      // 活动 jar 始终保留且不计入名额，故仅当「活动 + keep 个备份」之外还有多余时才清理
+      if (matches.length <= keep + 1) {
+        logFn('操作结果: 未执行（未超过保留数量）', 'config');
+        return;
+      }
+      // 按时间降序排序（最新在前，活动 jar 恒为第一），保留活动 jar + 最新 keep 个备份，删除其余
+      const sorted = matches.sort(
+        (a, b) => this.jarTimeKey(b.name, activeFileName) - this.jarTimeKey(a.name, activeFileName)
+      );
+      const toDelete = sorted.slice(keep + 1);
+      const names = toDelete.map((f) => f.name);
+      for (const name of names) {
+        await this.sftpClient.delete(path.posix.join(remoteDir, name));
+        logFn(`操作结果: 执行删除历史 jar 包: ${name}`, 'config');
+      }
+    } catch (error: any) {
+      logFn(`操作结果: 清理失败: ${error?.message || error}`, 'error');
+    }
   }
 }

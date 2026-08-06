@@ -30,6 +30,9 @@ declare global {
       // 进度监听
       onUploadProgress: (callback: (data: any) => void) => void;
       removeUploadProgressListener: () => void;
+      // 部署步骤日志监听（写入「操作日志」面板）
+      onUploadLog: (callback: (entry: { message: string; type?: string }) => void) => void;
+      removeUploadLogListener: () => void;
       
       // 日志相关
       fetchServerLogs: (config: any, command: string) => Promise<string>;
@@ -56,6 +59,20 @@ declare global {
       saveIgnoreVersion: (version: string) => Promise<{ success: boolean; error?: string }>;
       getUpdateConfig: () => Promise<any>;
       saveUpdateConfig: (config: any) => Promise<any>;
+
+      // 全局部署选项
+      getDeploymentConfig: () => Promise<{
+        uploadSourcemap: boolean;
+        keepDeployedJar: boolean;
+        keepJarCount: number;
+        deleteBesFiles: boolean;
+      }>;
+      saveDeploymentConfig: (config: {
+        uploadSourcemap: boolean;
+        keepDeployedJar: boolean;
+        keepJarCount: number;
+        deleteBesFiles: boolean;
+      }) => Promise<any>;
 
       // 配置导入导出
       exportConfigs: (configs: ServerConfig[]) => Promise<{ success: boolean; filePath?: string; error?: string; message?: string }>;

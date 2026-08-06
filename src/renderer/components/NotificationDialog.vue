@@ -19,7 +19,7 @@
               <!-- 成功图标 -->
               <svg
                 v-if="type === 'success'"
-                class="w-6 h-6 text-green-500"
+                class="w-6 h-6 text-success"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -35,7 +35,7 @@
               <!-- 错误图标 -->
               <svg
                 v-else-if="type === 'error'"
-                class="w-6 h-6 text-red-500"
+                class="w-6 h-6 text-error"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -51,7 +51,7 @@
               <!-- 警告图标 -->
               <svg
                 v-else-if="type === 'warning'"
-                class="w-6 h-6 text-yellow-500"
+                class="w-6 h-6 text-warning"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -99,13 +99,13 @@ function closeNotification(): void {
 function getBorderClass(): string {
   switch (type.value) {
     case 'success':
-      return 'border-green-500/30';
+      return 'border-success-soft';
     case 'error':
-      return 'border-red-500/30';
+      return 'border-error-soft';
     case 'warning':
-      return 'border-yellow-500/30';
+      return 'border-warning-soft';
     default:
-      return 'border-gray-500/30';
+      return 'border-muted-soft';
   }
 }
 
@@ -113,13 +113,13 @@ function getBorderClass(): string {
 function getIconClass(): string {
   switch (type.value) {
     case 'success':
-      return 'bg-green-500/20';
+      return 'bg-success-soft';
     case 'error':
-      return 'bg-red-500/20';
+      return 'bg-error-soft';
     case 'warning':
-      return 'bg-yellow-500/20';
+      return 'bg-warning-soft';
     default:
-      return 'bg-gray-500/20';
+      return 'bg-muted-soft';
   }
 }
 

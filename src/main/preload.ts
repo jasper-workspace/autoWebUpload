@@ -25,6 +25,14 @@ const api = {
     ipcRenderer.removeAllListeners('upload-progress');
   },
 
+  // 监听部署步骤日志（写入「操作日志」面板）
+  onUploadLog: (callback: (entry: { message: string; type?: string }) => void) => {
+    ipcRenderer.on('upload-log', (_, data) => callback(data));
+  },
+  removeUploadLogListener: () => {
+    ipcRenderer.removeAllListeners('upload-log');
+  },
+
   // 选择文件夹
   selectFolder: () => ipcRenderer.invoke('select-folder'),
 
@@ -74,6 +82,10 @@ const api = {
   saveIgnoreVersion: (version: string) => ipcRenderer.invoke('save-ignore-version', version),
   getUpdateConfig: () => ipcRenderer.invoke('get-update-config'),
   saveUpdateConfig: (config: any) => ipcRenderer.invoke('save-update-config', config),
+
+  // 全局部署选项
+  getDeploymentConfig: () => ipcRenderer.invoke('get-deployment-config'),
+  saveDeploymentConfig: (config: any) => ipcRenderer.invoke('save-deployment-config', config),
 
   // 配置导入导出
   exportConfigs: (configs: any) => ipcRenderer.invoke('export-configs', configs),

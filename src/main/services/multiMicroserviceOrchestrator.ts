@@ -1,5 +1,5 @@
 import path from 'path';
-import { app } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import {
   MicroserviceConfig,
   MicroserviceBuildProgress,
@@ -47,7 +47,8 @@ export class MultiMicroserviceOrchestrator {
     serverConfig: ServerConfig,
     backendRootPath: string,
     selectedIds: string[],
-    onProgress: (progress: MicroserviceBuildProgress) => void
+    onProgress: (progress: MicroserviceBuildProgress) => void,
+    options?: UploadFolderOptions
   ): Promise<MultiMicroserviceDeployResult> {
     this.isCanceled = false;
     const startTime = Date.now();
@@ -124,7 +125,8 @@ export class MultiMicroserviceOrchestrator {
         serverConfig,
         microservice,
         backendRootPath,
-        (progress) => onProgress(progress)
+        (progress) => onProgress(progress),
+        options
       );
 
       results.push(result);
@@ -154,7 +156,8 @@ export class MultiMicroserviceOrchestrator {
     serverConfig: ServerConfig,
     microservice: MicroserviceConfig,
     backendRootPath: string,
-    onProgress: (progress: MicroserviceBuildProgress) => void
+    onProgress: (progress: MicroserviceBuildProgress) => void,
+    options?: UploadFolderOptions
   ): Promise<MicroserviceDeployResult> {
     const microservicePath = path.join(backendRootPath, microservice.localPath);
     console.log('[MultiMicroserviceOrchestrator] deployOneMicroservice 开始', {
@@ -323,10 +326,17 @@ export class MultiMicroserviceOrchestrator {
         const remoteDir = microservice.remotePath;
         console.log('[MultiMicroserviceOrchestrator] 开始上传', { local: artifact.path, remote: remoteDir });
 
-        await sftpService.uploadFolder(artifact.path, remoteDir, () => {}, {
-          uploadSourcemap: serverConfig.backend?.uploadSourcemap ?? false,
-          keepDeployedJar: serverConfig.backend?.keepDeployedJar ?? true
-        });
+        // 部署步骤日志回传：发往渲染端「操作日志」面板（同时仍写文件）
+        const uploadOptions: UploadFolderOptions = options ?? {
+          uploadSourcemap: false,
+          keepDeployedJar: true
+        };
+        const win = BrowserWindow.getAllWindows()[0];
+        uploadOptions.onLog = (message: string, type?: 'info' | 'error' | 'warning' | 'success' | 'config') => {
+          win?.webContents.send('upload-log', { message, type: type ?? 'info' });
+        };
+
+        await sftpService.uploadFolder(artifact.path, remoteDir, () => {}, uploadOptions);
         uploadedFiles++;
 
         onProgress({

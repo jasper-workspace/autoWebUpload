@@ -388,12 +388,6 @@ export interface BackendConfig extends DeployTargetConfig {
 
   /** 自定义 Java 路径（可选，留空则使用系统默认 Java） */
   javaPath?: string;
-
-  /** 是否上传 sourcemap 文件，默认 false（不上传） */
-  uploadSourcemap: boolean;
-
-  /** 是否保留已部署 jar 包（上传前重命名旧 jar），默认 true */
-  keepDeployedJar: boolean;
 }
 
 /**
@@ -406,7 +400,42 @@ export interface UploadFolderOptions {
 
   /** 是否保留已部署 jar 包（上传前重命名旧 jar），默认 true */
   keepDeployedJar?: boolean;
+
+  /** 远端保留同名 jar 包数量（0-9），0=不处理 */
+  keepJarCount?: number;
+
+  /** 上传前是否删除远端 bes.* 文件 */
+  deleteBesFiles?: boolean;
+
+  /** 部署步骤日志回传（仅主进程内使用，不持久化），将日志同时写入文件并发送到渲染端操作日志面板 */
+  onLog?: (message: string, type?: 'info' | 'error' | 'warning' | 'success' | 'config') => void;
 }
+
+/**
+ * 全局部署选项（存储于 app-configs.json 的 deployment 键）
+ * - 跨所有服务器配置生效，非单服务器配置
+ */
+export interface DeploymentOptions {
+  /** 是否上传 sourcemap 文件，默认 false（不上传） */
+  uploadSourcemap: boolean;
+
+  /** 是否保留已部署 jar 包（上传前重命名旧 jar），默认 true */
+  keepDeployedJar: boolean;
+
+  /** 远端保留同名 jar 包数量（0-9），0=不处理 */
+  keepJarCount: number;
+
+  /** 上传前是否删除远端 bes.* 文件，默认 false */
+  deleteBesFiles: boolean;
+}
+
+/** 部署选项默认值 */
+export const DEFAULT_DEPLOYMENT_OPTIONS: DeploymentOptions = {
+  uploadSourcemap: false,
+  keepDeployedJar: true,
+  keepJarCount: 0,
+  deleteBesFiles: false,
+};
 
 // ==================== 服务器验证类型 ====================
 

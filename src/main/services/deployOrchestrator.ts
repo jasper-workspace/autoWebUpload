@@ -34,7 +34,8 @@ export class DeployOrchestrator {
    */
   async executeOneClickDeploy(
     serverConfig: ServerConfig,
-    buildConfig: BuildConfig
+    buildConfig: BuildConfig,
+    options?: UploadFolderOptions
   ): Promise<DeployResult> {
     const result: DeployResult = {
       success: false,
@@ -85,9 +86,9 @@ export class DeployOrchestrator {
 
       const localPath = `${buildConfig.localPath}/${buildResult.detectedOutputDir || buildConfig.outputDir}`;
 
-      await this.uploadWithProgress(localPath, remotePath, {
-        uploadSourcemap: serverConfig.backend?.uploadSourcemap ?? false,
-        keepDeployedJar: serverConfig.backend?.keepDeployedJar ?? true
+      await this.uploadWithProgress(localPath, remotePath, options ?? {
+        uploadSourcemap: false,
+        keepDeployedJar: true
       });
 
       result.upload = {
@@ -163,6 +164,13 @@ export class DeployOrchestrator {
         reject(new Error('SFTP服务未初始化'));
         return;
       }
+      // 部署步骤日志回传：发往渲染端「操作日志」面板（同时仍写文件）
+      const uploadOptions: UploadFolderOptions = options ?? {};
+      uploadOptions.onLog = (message: string, type?: 'info' | 'error' | 'warning' | 'success' | 'config') => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('upload-log', { message, type: type ?? 'info' });
+        }
+      };
       this.sftpService.uploadFolder(
         localPath,
         remotePath,
@@ -172,7 +180,7 @@ export class DeployOrchestrator {
           const displayName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
           this.reportDeployProgress('uploading', `正在上传: ${displayName}`, progress.percentage, 'building');
         },
-        options
+        uploadOptions
       ).then(() => resolve()).catch(reject);
     });
   }

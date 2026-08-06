@@ -45,6 +45,7 @@
     --warning-end: #FF8800;
     --error-start: #FF6B9D;
     --error-end: #FF0066;
+    --config-color: #C792EA;
 
     /* 高科技感变量 */
     --particle-color: rgba(0, 217, 255, 0.3);
@@ -107,6 +108,7 @@
     --warning-end: #DD7700;
     --error-start: #E91E63;
     --error-end: #DD0055;
+    --config-color: #7C3AED;
 
     /* 高科技感变量 */
     --particle-color: rgba(0, 184, 217, 0.2);
@@ -169,6 +171,7 @@
     --warning-end: #FF8800;
     --error-start: #FF6B9D;
     --error-end: #FF0066;
+    --config-color: #C792EA;
 
     /* 高科技感变量 */
     --particle-color: rgba(0, 217, 255, 0.3);
@@ -232,6 +235,7 @@
       --warning-end: #DD7700;
       --error-start: #E91E63;
       --error-end: #DD0055;
+    --config-color: #7C3AED;
 
       /* 高科技感变量 */
       --particle-color: rgba(0, 184, 217, 0.2);
@@ -313,6 +317,18 @@
     color: var(--foreground);
   }
 
+  /* 数字输入框隐藏原生微调按钮，统一使用主题样式，避免浅色箭头在深色主题下突兀 */
+  input[type="number"].input-field::-webkit-inner-spin-button,
+  input[type="number"].input-field::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"].input-field {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   select.input-field {
     padding-right: 2.5rem;
   }
@@ -359,6 +375,33 @@
     border: 1px solid var(--card-border);
     color: var(--foreground);
   }
+
+  /* 语义状态色（跟随主题变量，统一深/浅色表现，替代写死的 Tailwind 默认色） */
+  .text-error   { color: var(--error-start); }
+  .text-success { color: var(--success-start); }
+  .text-warning { color: var(--warning-start); }
+  .text-info    { color: var(--btn-primary); }
+  .text-config  { color: var(--config-color); }
+  .text-muted   { color: var(--muted-text); }
+
+  .bg-error   { background-color: var(--error-start); }
+  .bg-success { background-color: var(--success-start); }
+  .bg-warning { background-color: var(--warning-start); }
+  .bg-info    { background-color: var(--btn-primary); }
+
+  .bg-error-soft   { background-color: color-mix(in srgb, var(--error-start) 20%, transparent); }
+  .bg-success-soft { background-color: color-mix(in srgb, var(--success-start) 20%, transparent); }
+  .bg-warning-soft { background-color: color-mix(in srgb, var(--warning-start) 20%, transparent); }
+  .bg-info-soft    { background-color: color-mix(in srgb, var(--btn-primary) 20%, transparent); }
+  .bg-muted-soft   { background-color: color-mix(in srgb, var(--muted-text) 20%, transparent); }
+
+  .border-error-soft   { border-color: color-mix(in srgb, var(--error-start) 30%, transparent); }
+  .border-success-soft { border-color: color-mix(in srgb, var(--success-start) 30%, transparent); }
+  .border-warning-soft { border-color: color-mix(in srgb, var(--warning-start) 30%, transparent); }
+  .border-muted-soft   { border-color: color-mix(in srgb, var(--muted-text) 30%, transparent); }
+
+  /* hover 态专用类（自定义类无法用 Tailwind 的 hover: 变体生成） */
+  .hover-bg-error-soft:hover { background-color: color-mix(in srgb, var(--error-start) 20%, transparent); }
 
   /* 一键部署按钮 - 三色渐变科技风格 */
   .btn-oneclick {

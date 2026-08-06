@@ -37,8 +37,8 @@
               <button v-for="template in templates" :key="template.id" @click="loadTemplate(template.id)"
                 class="w-full text-left px-2 py-1.5 text-sm hover:bg-[var(--card-border)] rounded flex items-center justify-between">
                 <span>{{ template.name }}</span>
-                <button @click.stop="deleteTemplate(template.id)" class="p-1 hover:bg-red-500/20 rounded">
-                  <Trash2 class="w-3 h-3 text-red-400" />
+                <button @click.stop="deleteTemplate(template.id)" class="p-1 hover:bg-error-soft rounded">
+                  <Trash2 class="w-3 h-3 text-error" />
                 </button>
               </button>
             </div>
@@ -70,8 +70,8 @@
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-medium text-[var(--foreground)]">{{ server.name }}</h3>
               </div>
-              <button @click.stop="deleteServer(server.id)" class="p-1 transition-colors rounded hover:bg-red-500/20">
-                <Trash2 class="w-4 h-4 text-red-400" />
+              <button @click.stop="deleteServer(server.id)" class="p-1 transition-colors rounded hover:bg-error-soft">
+                <Trash2 class="w-4 h-4 text-error" />
               </button>
             </div>
             <div class="flex flex-col gap-1 text-xs text-[var(--muted-text)]">
@@ -175,7 +175,7 @@
           <!-- 2. 前端配置 -->
           <div class="section">
             <h3 class="flex items-center gap-2 mb-4 font-semibold text-md">
-              <div class="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-blue-600"></div>
+              <div class="w-4 h-4 rounded bg-gradient-to-br from-[var(--border-tech-start)] to-[var(--border-tech-end)]"></div>
               前端部署配置
             </h3>
             <div class="space-y-4">
@@ -265,27 +265,6 @@
               <p class="text-xs text-[var(--muted-text)] mt-1">
                 {{ backendArchitecture === 'microservice' ? '微服务架构：支持多模块微服务分别部署' : '单体架构：使用构建配置打包部署单个后端项目' }}
               </p>
-            </div>
-
-            <!-- 后端部署开关：sourcemap 上传与 jar 备份 -->
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-[var(--muted-text)] mb-2">部署选项</label>
-              <div class="space-y-3">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <input v-model="form.backend.uploadSourcemap" type="checkbox" class="accent-[var(--btn-primary)]" />
-                    <span class="text-sm text-[var(--foreground)]">是否上传 sourcemap</span>
-                  </div>
-                  <p class="text-xs text-[var(--muted-text)] mt-1">关闭时不上传 sourcemap 文件</p>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <input v-model="form.backend.keepDeployedJar" type="checkbox" class="accent-[var(--btn-primary)]" />
-                    <span class="text-sm text-[var(--foreground)]">是否保留已部署 jar 包</span>
-                  </div>
-                  <p class="text-xs text-[var(--muted-text)] mt-1">勾选时上传前备份旧 jar 包</p>
-                </div>
-              </div>
             </div>
 
             <!-- 单体架构配置 -->
@@ -415,9 +394,9 @@
 
               <!-- Maven状态 -->
               <div v-if="!mavenInstalled"
-                class="flex items-center gap-2 p-3 border rounded-lg bg-yellow-500/10 border-yellow-500/30">
-                <AlertTriangle class="w-4 h-4 text-yellow-500" />
-                <span class="text-sm text-yellow-500">未检测到Maven，请确保已安装Maven并配置环境变量</span>
+                class="flex items-center gap-2 p-3 border rounded-lg bg-warning-soft border-warning-soft">
+                <AlertTriangle class="w-4 h-4 text-warning" />
+                <span class="text-sm text-warning">未检测到Maven，请确保已安装Maven并配置环境变量</span>
               </div>
 
               <!-- 微服务列表预览 -->
@@ -514,11 +493,11 @@
     <div v-if="connectionResult" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click="closeConnectionResult">
       <div class="bg-[var(--dialog-bg)] rounded-lg p-6 max-w-md w-full mx-4"
-        :class="connectionResult.success ? 'border border-green-500/30' : 'border border-red-500/30'" @click.stop>
+        :class="connectionResult.success ? 'border border-success-soft' : 'border border-error-soft'" @click.stop>
         <div class="flex items-center gap-3 mb-4">
           <div class="flex items-center justify-center w-10 h-10 rounded-full"
-            :class="connectionResult.success ? 'bg-green-500/20' : 'bg-red-500/20'">
-            <div class="w-6 h-6 rounded-full" :class="connectionResult.success ? 'bg-green-500' : 'bg-red-500'"></div>
+            :class="connectionResult.success ? 'bg-success-soft' : 'bg-error-soft'">
+            <div class="w-6 h-6 rounded-full" :class="connectionResult.success ? 'bg-success' : 'bg-error'"></div>
           </div>
           <h3 class="text-lg font-semibold text-[var(--foreground)]">
             {{ connectionResult.success ? '连接成功' : '连接失败' }}
@@ -748,9 +727,7 @@ const form = reactive({
   backend: {
     ...createDefaultDeployTarget('backend'),
     microservices: [] as MicroserviceConfig[],
-    rootPath: '',
-    uploadSourcemap: false,
-    keepDeployedJar: true
+    rootPath: ''
   }
 });
 
@@ -790,8 +767,6 @@ function migrateConfig(server: any): ServerConfig {
       buildConfig: server.buildConfig?.type === 'backend' ? server.buildConfig : undefined,
       microservices: (server.backend as any)?.microservices || [],
       rootPath: (server.backend as any)?.rootPath || '',
-      uploadSourcemap: (server.backend as any)?.uploadSourcemap ?? false,
-      keepDeployedJar: (server.backend as any)?.keepDeployedJar ?? true,
     }
   };
 
@@ -854,8 +829,6 @@ async function selectServer(id: string) {
         buildConfig: migrated.backend.buildConfig || createDefaultBuildConfig('backend'),
         microservices: ((migrated.backend as any).microservices as MicroserviceConfig[]) || [],
         rootPath: (migrated.backend as any).rootPath || '',
-        uploadSourcemap: (migrated.backend as any).uploadSourcemap ?? false,
-        keepDeployedJar: (migrated.backend as any).keepDeployedJar ?? true,
       };
       form.backend = backendConfig;
 
@@ -887,9 +860,7 @@ function resetForm() {
   form.backend = {
     ...createDefaultDeployTarget('backend'),
     microservices: [],
-    rootPath: '',
-    uploadSourcemap: false,
-    keepDeployedJar: true
+    rootPath: ''
   };
   authType.value = 'password';
   showPassword.value = false;
@@ -922,9 +893,6 @@ async function saveConfig() {
     rootPath: backendArchitecture.value === 'microservice' ? backendRootPath.value : '',
     mavenPath: backendArchitecture.value === 'microservice' ? mavenPath.value : undefined,
     javaPath: backendArchitecture.value === 'microservice' ? javaPath.value : undefined,
-    // 后端部署开关
-    uploadSourcemap: form.backend.uploadSourcemap ?? false,
-    keepDeployedJar: form.backend.keepDeployedJar ?? true,
   };
 
   // 使用 JSON.parse(JSON.stringify()) 深度克隆，剥离响应式并确保可序列化

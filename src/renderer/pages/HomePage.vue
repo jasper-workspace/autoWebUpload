@@ -217,7 +217,7 @@
             <button
               v-if="isDeployingRef"
               @click="handleCancelDeploy"
-              class="flex items-center justify-center w-full gap-2 mt-4 text-sm font-medium px-6 py-2 rounded-lg border border-[#D9534F] text-[#D9534F] hover:bg-[rgba(217,83,79,0.12)] transition-all duration-200">
+              class="flex items-center justify-center w-full gap-2 mt-4 text-sm font-medium px-6 py-2 rounded-lg border border-error text-error hover:bg-error-soft transition-all duration-200">
               <X class="w-4 h-4" />
               取消部署
             </button>
@@ -443,10 +443,11 @@
               v-for="(log, index) in filteredLogs"
               :key="index"
               :class="{
-                'text-green-400': log.type === 'success',
-                'text-red-400': log.type === 'error',
-                'text-yellow-400': log.type === 'warning',
-                'text-blue-400': log.type === 'info',
+                'text-success': log.type === 'success',
+                'text-error': log.type === 'error',
+                'text-warning': log.type === 'warning',
+                'text-info': log.type === 'info',
+                'text-config': log.type === 'config',
                 'text-[var(--foreground)]': !log.type,
               }">
               [{{ log.time }}] <span v-html="highlightKeyword(log.message)"></span>
@@ -654,8 +655,11 @@ const filteredLogs = computed(() => {
 });
 
 function highlightKeyword(message: string): string {
+  // 将换行转换为 <br>，使含多行的日志（如部署配置块）在面板中正常换行显示
+  const withBreaks = (html: string): string => html.replace(/\n/g, '<br>');
+
   if (!logSearchKeyword.value) {
-    return escapeHtml(message);
+    return withBreaks(escapeHtml(message));
   }
 
   const keyword = logSearchKeyword.value;
@@ -668,9 +672,11 @@ function highlightKeyword(message: string): string {
     regex = new RegExp(`(${escapedKeyword})`, "gi");
   }
   const escapedMessage = escapeHtml(message);
-  return escapedMessage.replace(
-    regex,
-    '<mark class="bg-yellow-400/30 text-yellow-300 px-0.5 rounded">$1</mark>'
+  return withBreaks(
+    escapedMessage.replace(
+      regex,
+      '<mark class="bg-warning-soft text-warning px-0.5 rounded">$1</mark>'
+    )
   );
 }
 
@@ -964,9 +970,9 @@ function getMsOverallColor(): string {
   const failed = progresses.filter((p) => p?.phase === "error").length;
   const completed = progresses.filter((p) => p?.phase === "completed").length;
 
-  if (failed > 0) return "text-red-400";
-  if (completed === progresses.length) return "text-green-400";
-  return "text-blue-400";
+  if (failed > 0) return "text-error";
+  if (completed === progresses.length) return "text-success";
+  return "text-info";
 }
 
 /**
@@ -977,9 +983,9 @@ function getMsOverallBarColor(): string {
   const failed = progresses.filter((p) => p?.phase === "error").length;
   const completed = progresses.filter((p) => p?.phase === "completed").length;
 
-  if (failed > 0) return "bg-red-500";
-  if (completed === progresses.length) return "bg-green-500";
-  return "bg-blue-500";
+  if (failed > 0) return "bg-error";
+  if (completed === progresses.length) return "bg-success";
+  return "bg-info";
 }
 
 /**
@@ -1050,28 +1056,28 @@ function getSinglePhaseLabel(): string {
  * 获取单部署模式进度文字颜色
  */
 function getSingleColor(): string {
-  if (deployProgress.value?.status === "error") return "text-red-400";
+  if (deployProgress.value?.status === "error") return "text-error";
   if (
     deployProgress.value?.status === "success" ||
     deployProgress.value?.phase === "completed"
   ) {
-    return "text-green-400";
+    return "text-success";
   }
-  return "text-blue-400";
+  return "text-info";
 }
 
 /**
  * 获取单部署模式进度条颜色
  */
 function getSingleBarColor(): string {
-  if (deployProgress.value?.status === "error") return "bg-red-500";
+  if (deployProgress.value?.status === "error") return "bg-error";
   if (
     deployProgress.value?.status === "success" ||
     deployProgress.value?.phase === "completed"
   ) {
-    return "bg-green-500";
+    return "bg-success";
   }
-  return "bg-blue-500";
+  return "bg-info";
 }
 
 /**
@@ -1767,6 +1773,10 @@ onMounted(() => {
     window.electronAPI.onUploadProgress((data: any) => {
       // 使用 uploadStore 处理进度更新，并传入全局上传配置
       uploadStore.handleUploadProgress(data, window.currentUploadConfig);
+    });
+    // 部署步骤日志（bes 删除 / jar 备份 / jar 清理等）写入「操作日志」面板
+    window.electronAPI.onUploadLog((entry: { message: string; type?: string }) => {
+      uploadStore.addLog(entry.message, entry.type);
     });
     window.uploadProgressListenerSet = true;
   }
