@@ -19,12 +19,14 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/set-env.js && vue-tsc && vite build && electron-builder",
-    "preview": "vite preview",
+    "preview": "vite preview",  
     "rebuild": "electron-rebuild",
     "debug": "vite --mode development",
     "debug:electron": "electron --inspect=5858 dist-electron/main/index.js",
     "debug:renderer": "vite --mode development --debug",
     "typecheck": "vue-tsc --noEmit",
+    "build:mac": "node scripts/set-env.js && vue-tsc && vite build && electron-builder --mac",
+    "build:mac:arm64": "node scripts/set-env.js && vue-tsc && vite build && electron-builder --mac --arm64",
     "lint": "echo 'No linting configured'",
     "clean": "rimraf dist dist-electron release"
   },
@@ -76,6 +78,20 @@
         }
       ],
       "icon": "favicon.png"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "${productName}-${version}"
     },
     "portable": {
       "artifactName": "${productName}.exe"
